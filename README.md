@@ -1,6 +1,6 @@
 * https://www.terraform.io/docs/language/dependency-lock.html
 * https://discuss.hashicorp.com/t/terraform-0-14-the-dependency-lock-file/15696
-
+* https://medium.com/@business_99069/terraform-count-vs-for-each-b7ada2c0b186
 
 1. if you run any terraform command without init before:
     terraform validate
@@ -54,3 +54,13 @@
         in some way after you reviewed it.
 1. .terraform directory is in turn just a local cache of remote the items the lock file describes.
 1. http://127.0.0.1:8080/test.html
+1. for_each vs count
+    * count
+        * In the past (before Terraform 0.12.6) the only way to create multiple instances of the same resource was to use a count parameter.
+        * Quite often there was some list defined somewhere and we’d create so many instances of a resource as many elements the list has
+        * Now, count is sensible for any changes in list order, this means that if for some reason order of the list is changed, terraform will force replacement of all resources of which the index in the list has changed
+        * In example below I added one more element to the list (as first element, at list index 0) and this is what terraform is trying to do as a result:
+        * Not only my new resource is getting added, but ALL the other resources are being recreated, this is a DISASTER
+    * for_each
+        * It takes a map / set as input and uses the key of a map as an index of instances of created resource.
+1. show why validation is important (internal_port - if you change from 8080 it will not work)
