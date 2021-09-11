@@ -17,11 +17,12 @@ resource "docker_image" "http_server_image" {
 }
 
 resource "docker_container" "http_server_container" {
+  count = length(var.external_port)
   image = docker_image.http_server_image.latest
-  name  = "http_server-running"
+  name  = join("-", ["http_server-running", count.index])
 
   ports {
-    internal = "8080"
-    external = "8080"
+    internal = var.internal_port
+    external = var.external_port[count.index]
   }
 }
