@@ -1,11 +1,11 @@
 variable "external_port" {
-  type = list(any)
+  type = list(number)
 
 
-  # validation {
-  #   condition     = var.ext_port <= 65535 && var.ext_port > 0
-  #   error_message = "The external port must be in the valid port range 0 - 65535."
-  # }
+  validation {
+    condition     = alltrue([ for port in var.external_port : (0 <= port && port <= 65535) ])
+    error_message = "The external port must be in the valid port range 0 - 65535."
+  }
 }
 
 variable "internal_port" {
