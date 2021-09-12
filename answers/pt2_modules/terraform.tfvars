@@ -1,3 +1,3 @@
 ext_port = {
-  nodered = [1980]
+  nodered = [8080, 8081]
 }
