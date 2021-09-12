@@ -23,10 +23,10 @@ variable "ext_port" {
 
 variable "int_port" {
   type    = number
-  default = 1880
+  default = 8080
 
   validation {
-    condition     = var.int_port == 1880
+    condition     = var.int_port == 8080
     error_message = "The internal port must be 1880."
   }
 }
