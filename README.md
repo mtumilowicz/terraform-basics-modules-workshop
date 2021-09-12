@@ -3,6 +3,7 @@
 * https://medium.com/@business_99069/terraform-count-vs-for-each-b7ada2c0b186
 * https://hub.docker.com/r/danjellz/http-server
 * https://discuss.hashicorp.com/t/validate-list-object-variables/18291/2
+* https://github.com/morethancertified/mtc-terraform
 
 1. if you run any terraform command without init before:
     terraform validate
