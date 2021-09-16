@@ -74,3 +74,7 @@
 # remote backend
 * create resources first, then uncomment the backend cofiguration, then init
     * workspaces should be discussed here
+
+# aws
+aws --endpoint-url=http://localhost:4566 s3 ls
+aws --endpoint-url=http://localhost:4566 ec2 describe-instances
