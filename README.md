@@ -4,6 +4,7 @@
 * https://hub.docker.com/r/danjellz/http-server
 * https://discuss.hashicorp.com/t/validate-list-object-variables/18291/2
 * https://github.com/morethancertified/mtc-terraform
+* https://github.com/edgar-anascimento/terraform-localstack-setup
 
 1. if you run any terraform command without init before:
     terraform validate
@@ -72,3 +73,4 @@
 
 # remote backend
 * create resources first, then uncomment the backend cofiguration, then init
+    * workspaces should be discussed here
