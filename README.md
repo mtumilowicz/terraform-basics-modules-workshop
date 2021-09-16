@@ -68,3 +68,7 @@
         * It takes a map / set as input and uses the key of a map as an index of instances of created resource.
 1. show why validation is important (internal_port - if you change from 8080 it will not work)
 1. The [*] and .* operators are intended for use with lists only. Because this resource uses for_each rather than count, its value in other expressions is a map, not a list.
+
+
+# remote backend
+* create resources first, then uncomment the backend cofiguration, then init
