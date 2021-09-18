@@ -17,6 +17,7 @@
     * [Learn DevOps: Infrastructure Automation With Terraform](https://www.udemy.com/course/learn-devops-infrastructure-automation-with-terraform)
     * [More than Certified in Terraform](https://www.udemy.com/course/terraform-certified/)
     * https://www.terraform.io/docs/language/state/backends.html
+    * [Terraform in Action](https://www.manning.com/books/terraform-in-action)
 
 ## preface
 * goals of this workshops
@@ -33,31 +34,28 @@
     1. pt3_remotebackend
     1. pt4_aws
 
-## infra as a code
+## infrastructure as a code
+* terraform
+    * automate provisioning of the infrastructure itself (ex. using AWS)
+    * works well with automation software like ainsible to install software after the infrastructure is provisioned
 * packer
-  * commandline tool that can build AWS AMIs based on templates
-  * instead of installing the software after booting up an instance, you
-  can create an AMI with all the necessary software on
-  * speed up boot times of instances
-  * common approach when you run a horizontally scaled app layer or a
-  cluster
-  * template
-    * builders (amazon-ebs)
-    * provisioners (shell, scripts/install_software.sh)
+    * can build AWS AMIs based on templates
+    * instead of installing the software after booting up an instance, you
+    can create an AMI with all the necessary software on
+    * speed up boot times of instances
+    * common approach when you run a horizontally scaled app layer or a cluster
+* ainsible
+    * has a focus on automating the installation and configuration of software
 * 2 ways to provision software on your instances
-  * build your own custom AMI and bundle your software with the image
-    * Packer is great tool to do this
-  * boot standarized AMIs and then install the software on it
-    * using file uploads + remote exec
-      * upload a script then execute it
-    * using automation tools like ansible
-      * you run terraform first, output the IP addresses, then run ansible-playbook
-      * on those hosts
-* make your infrastructure auditable
-  * you can keep your infrastructure change history in git
-* ainsible has a focus on automating the installation and configuration of software
-* terraform automate provisioning of the infrastructure itself (ex. using AWS)
-  * works well with automation software like ainsible to install software after the infrastructure is provisioned
+    * build your own custom AMI and bundle your software with the image
+        * Packer is great tool to do this
+    * boot standarized AMIs and then install the software on it
+        * upload a script then execute it, using file uploads + remote exec
+        * using automation tools like ansible
+            * you run terraform first, output the IP addresses, then run ansible-playbook on those hosts
+* pros
+    * make your infrastructure auditable
+        * you can keep your infrastructure change history in git
 * immutable infrastructure vs mutable
   * jak mamy serwery to nikt tam nie ma prawa zainstalować nowszej paczki
         * docker dobrym przykładem
