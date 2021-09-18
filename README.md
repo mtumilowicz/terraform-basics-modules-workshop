@@ -44,8 +44,44 @@
   * template
     * builders (amazon-ebs)
     * provisioners (shell, scripts/install_software.sh)
+* 2 ways to provision software on your instances
+  * build your own custom AMI and bundle your software with the image
+    * Packer is great tool to do this
+  * boot standarized AMIs and then install the software on it
+    * using file uploads + remote exec
+      * upload a script then execute it
+    * using automation tools like ansible
+      * you run terraform first, output the IP addresses, then run ansible-playbook
+      * on those hosts
+* make your infrastructure auditable
+  * you can keep your infrastructure change history in git
+* ainsible has a focus on automating the installation and configuration of software
+* terraform automate provisioning of the infrastructure itself (ex. using AWS)
+  * works well with automation software like ainsible to install software after the infrastructure is provisioned
+* immutable infrastructure vs mutable
+  * jak mamy serwery to nikt tam nie ma prawa zainstalować nowszej paczki
+        * docker dobrym przykładem
+  * mutable - serwer ewaluuje
 
 ## introduction
+* terraform is separated into 3 separate parts
+  * core
+        * parser
+        * config
+        * dag
+        * schema
+        * operations: diff(), apply(), refresh()
+  * providers
+        * resource
+        * operations: CRUD
+  * upstream
+        * terraform not control but interaction takes place
+        * actually creates resources - terraform does not create resources - it makes
+        google cloud api to create it
+        * api (google cloud api, github api, ...)
+        * services
+* dynamic blocks
+* interpolation ${}
 * variables
     * variables can be validated
     * variables can be declared sensitive
@@ -80,7 +116,9 @@
         * when upgrading between versions
         * when you want to rename a resource without recreating it
         * when you want to stop managing but don't want to destroy
-
+    * What happens when terraform.tfstate is removed?
+      * terraform doesn't recreate the terraform tfstate file itself automatically.
+      * You can use terraform import to manually recreate the terraform.tfstate.
 * dependency lock file
 * providers
   * go to hidden files: .terraform providers ... and find binary of the provider
@@ -131,12 +169,36 @@
       * is a map where you could define your own key
       * locals { mymap = { Instance1 = ..., Instance2 = ... } }
       * module xxx { for_each = local.mymap instance_name = each.key }}
+* Provisioners are used to execute scripts on a local or remote machine as part of resource creation or destruction
+  * provisioner "local-exec" {
+    command = "echo ${aws_instance.testInstance.public_ip} >> public_ip.txt"
+    }
+* terraform templates
+  * data "template_file" "template1" { }
+  * resource "aws_instance" "web" { ... user_data = data.template_file.template1.rendered }
+* data "terraform_remote_state" "aws-state" { backend = s3 }
+  * useful to generate outputs
+    * datasources provide you with dynamic information
+        * example: list of AMIs
+        * data sources - way terraform can query aws and return results (perform API request)
+            * data "aws_instance" "dbsearch" {
+              * filter {
+                * name = "tag:Name"
+                * values = ["DB Server"]
+              * }
+            * }
+
 
 
 ## standard operations
 * terraform plan with export -> terraform apply with that plan
-
-
+* terraform apply = terraform plan -out file ; terraform apply file ; rm file
+    * terraform init
+    * terraform apply
+      * --auto-approve
+    * terraform plan
+    * terraform destroy
+    * terraform refresh
 
 ## module
 * information flow
@@ -180,7 +242,10 @@
   * in real world scenarios you typically use re-usable modules and really split out the state over
   multiple backends (for example your staging backend will be on s3 on your staging aws account and your
   prod backend will be in an s3 bucket on the prod aws account, following multi-account strategy)
-
+* project structure
+  * you want to separate your development and production environments completely
+  * for complete isolation, it's best to create multiple AWS accounts, and use one account
+  for dev, another for prod, and a third one for billing
 
 
 ## aws
@@ -250,216 +315,3 @@ aws --endpoint-url=http://localhost:4566 ec2 describe-instances
     * for_each
         * It takes a map / set as input and uses the key of a map as an index of instances of created resource.
 1. show why validation is important (internal_port - if you change from 8080 it will not work)
-1. The [*] and .* operators are intended for use with lists only. Because this resource uses for_each rather than count, its value in other expressions is a map, not a list.
-
-* immutable infrastructure vs mutable
-  * jak mamy serwery to nikt tam nie ma prawa zainstalować nowszej paczki
-        * docker dobrym przykładem
-  * mutable - serwer ewaluuje
-* infrastructure as a code
-    * recipe for servers; someone comes to you and say show me your servers and you show him yaml file
-* idempotentność - niezależnie ile razy uruchomimy skrypt to ma za zadanie sprawdzić co jest i ewentualnie nanieść
-  poprawki
-  * przeciwieństwo zwykłych skryptów które uruchomione wiele razy powodują problemy
-* terraform can manage things that are beyond the traditional scope of what we would consider
-  infrastructure
-  * typically infrastructure = compute, networking, storage
-  * what can provide more? github teams and permissions
-* terraform is separated into 3 separate parts
-  * core
-        * parser
-        * config
-        * dag
-        * schema
-        * operations: diff(), apply(), refresh()
-  * providers
-        * resource
-        * operations: CRUD
-  * upstream
-        * terraform not control but interaction takes place
-        * actually creates resources - terraform does not create resources - it makes
-        google cloud api to create it
-        * api (google cloud api, github api, ...)
-        * services
-  * if you write your provider you have to implement CRUD and terraform makes
-    hard decisions for you (what operation invoke)
-* plan v apply
-    * separates plan phase from apply phase
-    * terraform plan is closest to test
-* state
-    * how terraform knows what operations to take
-* tf apply
-    * first output: Acquiring state lock. - locks in case of concurrent access
-* commands
-    * terraform init
-    * terraform apply
-      * --auto-approve
-    * terraform plan
-    * terraform destroy
-    * terraform refresh
-* general
-  ```
-  THING "TYPE" "NAME" {
-    [ATTRIBUTES...]
-  }
-  ```
-* components
-  * data
-    * poznać adres IP maszyny o nazwie...
-  * variable
-  * provider
-  * resource
-  * provisioner
-  * output
-* terraform.tfstate (example: S3 + change log DynamoDB)
-* główni konkurenci
-    * CloudFormation
-    * Vagrant
-    * Ansible
-* trigger -> terraform: provision server -> update software -> Ansible: apply configuration -> use it
-* https://learn.hashicorp.com/collections/terraform/aws-get-started
-    * filmiki
-* https://registry.terraform.io/providers/hashicorp/aws/latest/docs
-    * spis do kopiowania
-* order in terraform does not matter
-* terraform files
-    * `.terraform` - cache for plugins
-    * `terraform.tfstate` - represents all of the state of terraform (simple json)
-    * `terraform.tfstate.backup`
-    * `anyName.tfvars`
-* https://registry.terraform.io/namespaces/terraform-aws-modules
-* creating IAM hack: create using visual editor AWS, and then copy output json file and paste to terraform
-* dependencies = depends_on
-* count = length(var.server_names)
-  * Name = var.server_names[count.index]
-  * value = [aws_instance.nameHere.*.private_ip]
-* data sources - way terraform can query aws and return results (perform API request)
-    * data "aws_instance" "dbsearch" {
-      * filter {
-        * name = "tag:Name"
-        * values = ["DB Server"]
-      * }
-    * }
-* make your infrastructure auditable
-  * you can keep your infrastructure change history in git
-* ainsible has a focus on automating the installation and configuration of software
-* terraform automate provisioning of the infrastructure itself (ex. using AWS)
-  * works well with automation software like ainsible to install software after the infrastructure is provisioned
-* HCL - hashicorp configuration language
-* terraform console
-* terraform apply = terraform plan -out file ; terraform apply file ; rm file
-* ${lookup(map, key, default)}
-* 2 ways to provision software on your instances
-  * build your own custom AMI and bundle your software with the image
-    * Packer is great tool to do this
-  * boot standarized AMIs and then install the software on it
-    * using file uploads + remote exec
-      * upload a script then execute it
-    * using automation tools like ansible
-      * you run terraform first, output the IP addresses, then run ansible-playbook
-      * on those hosts
-* when using s3 remote state it's best to configure the AWS credentials
-  * backend need an access to s3 before it will do any other initialization
-* data "terraform_remote_state" "aws-state" { backend = s3 }
-  * useful to generate outputs
-* datasources provide you with dynamic information
-    * example: list of AMIs
-* terraform templates
-  * data "template_file" "template1" { }
-  * resource "aws_instance" "web" { ... user_data = data.template_file.template1.rendered }
-* terraform fmt - reformat code (used before commit)
-* terraform taint - destroy and recreate the resource
-* Provisioners are used to execute scripts on a local or remote machine as part of resource creation or destruction
-  * provisioner "local-exec" {
-    command = "echo ${aws_instance.testInstance.public_ip} >> public_ip.txt"
-    }
-* What happens when terraform.tfstate is removed?
-  * terraform doesn't recreate the terraform tfstate file itself automatically.
-  * You can use terraform import to manually recreate the terraform.tfstate.
-* terraform + AWS
-  * Amazon Virtual Private Cloud (VPC) is a service that lets you launch AWS resources in a logically isolated
-  virtual network that you define.
-  * VPC isolates instances on the network level
-    * like own private network in the cloud
-  * one VPC (per region) will be suitable (for smaller / medium startups)
-  * an instance launched in one VPC cannot communicate with an instance in an other VPC using their private IP
-    * they could communicate using public IP
-    * you could also link 2 VPC (peering)
-  * every availability zones has its own public and private subnet
-  * all the public subnets are connected to an Internet Gateway
-    * these instances will also have a public address, allowing them to be
-    reachable from the internet
-  * typically you use the public subnets for internet-facing services/apps
-  * databases, caching services and backends all go into private subnets
-  * a security group is just like a firewall
-    * you specify ingress (incoming) and egress(outgoing) traffic rules
-  * allows ingress: it's best practice to only allow your work/home/office IP
-  * allow all outgoing traffic from the instance (all IPs)
-    * no point in restricting
-  * aws_instance has a field subnet_id which refers to the subnet of the VPC, which will be used to determine in
-  what VPC the instance will launch
-  * ingress {
-      from_port = 22
-      to_port = 22
-      protocol = "-1"
-      cidr_blocks = ["0.0.0.0/0"] // all ip addresses
-      }
-  * For every subnet you can only define one availability zone.
-    * One IP range (a subnet) can only be assigned to 1 availability zone
-  * resource "aws_subnet" "subnet-1" {
-    vpc_id = "${aws_vpc.main.id}"
-    cidr_block = "10.0.203.0/24"
-    map_public_ip_on_launch = "true" // map_public_ip_on_launch will give this subnet a public IP address, which means it'll be a public subnet
-    availability_zone = "us-west-1a"
-    }
-  * a private subnet (a subnet without public IPs) will never be able to send traffic to the internet
-    * FALSE - if you activate a NAT gateway and activate routes to route the traffic through the NAT gateway,
-    instances will be able to send outgoing traffic over the NAT gateway.
-    It's not possible to enable incoming traffic (e.g. webserver)
-  * userdata - can be used to do any customization at launch
-    * install extra software
-    * prepare instances to join a cluster
-      * ECS cluster
-    * execute commands / scripts
-    * is executed only at creation time not when instance reboots
-  * private ip addresses will be auto-assigned to ec2 instances
-  * every subnet within the vpc has its own range (10.0.1.0 - 10.0.1.255)
-  * to use a public ip address, you can use EIP (elastic ip addresses)
-    * public static IP address that you can attach to your instance
-  * route53
-    * typically you not use IP addresses but hostnames
-    * you can host a domain name on AWS using route53
-      * you first need to register a domain name using aws or any accredited registrar
-      * you can then create a zone i route53 (eg example.com) and add DNS records (server1.example.com)
-  * in AWS you can create
-    * groups
-    * users
-    * roles
-* interpolation ${}
-* conditionals
-* for / for each loop
-  * for: for s in list : upper(s)
-  * for each: for repeat nested block
-    * dynamic "ingress" {
-      * for_each = [22, 443]
-      * content {
-        * from_port
-        * to_port
-        * protocol
-      * }
-    * }
-* project structure
-  * you want to separate your development and production environments completely
-  * for complete isolation, it's best to create multiple AWS accounts, and use one account
-  for dev, another for prod, and a third one for billing
-
-
-* you cannot use a function in default in variables, so you have to define local variable and use function there
-* Other than the .terraform directory, what other file was created in the root of your directory when you initialized?
-  * terraform.lock.hcl
-* What is one item found within the .terraform directory?
-  * cached provider plugins
-* Open the image.tfplan file. Is the information contained within image.tfplan useful to humans?
-  * No. The image.tfplan is only usable when deploying the infrastructure with Terraform and does not contain any human readable information.
-* terraform apply -var-file=houston.tfvars
-* cidrsubnet, random_shuffle, data aws_ami, aws_key_pair, templatefile, sensitive
