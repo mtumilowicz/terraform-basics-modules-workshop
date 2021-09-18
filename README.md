@@ -35,9 +35,33 @@
     1. pt4_aws
 
 ## infrastructure as a code
+* is the process of managing and provisioning infrastructure through machine-readable definition files
+* infrastructure refers to cloud-based infrastructure
+    * but anything that could be controlled through an API technically qualifies as infrastructure
+* infrastructure provisioning and configuration management are inherently different problems
+    * provisioning = deploying infrastructure
+    * configuration management = application delivery on virtual machines (VMs)
+    * CM tools favor mutable infrastructure
+        * mutable infrastructure = updates on existing servers
+    * Terraform favors immutable infrastructure
+        * Immutable infrastructure treats infrastructure as a disposable commodity
 * terraform
-    * automate provisioning of the infrastructure itself (ex. using AWS)
-    * works well with automation software like ainsible to install software after the infrastructure is provisioned
+    * automate provisioning of the infrastructure itself
+    * is a deployment technology
+    * cloud agnostic
+        * integrates with different clouds through Terraform providers (plugins)
+    * Fundamentally, Terraform is a state management tool that performs
+      CRUD operations (create, read, update, delete) on managed resources
+        * Anything
+        that can be represented as CRUD can be managed as a Terraform resource.
+        * Terraform uses the same APIs you would use if you were writing an
+          automation script to deploy infrastructure
+        * The difference is that Terraform doesn’t
+          just deploy infrastructure: Terraform manages it
+        * Terraform intrinsically understands
+          dependencies between resources and can even detect and correct for configuration
+          drift
+        * Terraform is a simple state management engine
 * packer
     * can build AWS AMIs based on templates
     * instead of installing the software after booting up an instance, you
@@ -45,6 +69,7 @@
     * speed up boot times of instances
     * common approach when you run a horizontally scaled app layer or a cluster
 * ainsible
+    * install software after the infrastructure is provisioned
     * has a focus on automating the installation and configuration of software
 * 2 ways to provision software on your instances
     * build your own custom AMI and bundle your software with the image
@@ -56,12 +81,46 @@
 * pros
     * make your infrastructure auditable
         * you can keep your infrastructure change history in git
-* immutable infrastructure vs mutable
-  * jak mamy serwery to nikt tam nie ma prawa zainstalować nowszej paczki
-        * docker dobrym przykładem
-  * mutable - serwer ewaluuje
 
 ## introduction
+* terraform plan
+    * You should always run
+    terraform plan before deploying
+    * terraform plan informs
+      you about what Terraform intends to do and acts as a linter, letting you know about
+      any syntax or dependency errors
+    * The three main stages of a terraform plan are as follows:
+      1. Read the configuration and state.
+         * main.tf
+         * Terraform reads your configuration and state files (if they exist).
+      1. Determine actions to take.
+         * terraform.tfstate
+         * Terraform performs a calculation to determine what needs to be done to achieve
+           the desired state. This can be one of Create() , Read() , Update() , Delete() , or No-op .
+      1. Output the plan.
+         * An execution plan ensures that actions occur in the right order to avoid dependency problems.
+         * This is more relevant when you have lots of resources.
+    * algo
+        1. Refresh state
+        2. Read configuration: main.tf
+        3. Read state: terraform.tfstate
+        4. Resource in state?
+            * YES -> Read()
+                1. Has changes?
+                    * Yes -> Is Destroy Plan?
+                        * Yes -> Delete()
+                        * No -> Update()
+                    * No -> No-op
+            * NO - Create()
+        5. Output plan
+    * As you can see, Terraform has noticed that we altered the content attribute and is
+      therefore proposing to destroy the old resource and create a new resource in its stead.
+      * This is done rather than updating the attribute in place because content is marked
+      as a force new attribute, which means if you change it, the whole resource is tainted.
+        * This is a classic example of immutable infrastructure, although not all attributes of
+          managed Terraform resources behave like this
+        * In fact, most resources have regular in-
+          place (i.e. mutable) updates
 * terraform is separated into 3 separate parts
   * core
         * parser
@@ -117,6 +176,12 @@
     * What happens when terraform.tfstate is removed?
       * terraform doesn't recreate the terraform tfstate file itself automatically.
       * You can use terraform import to manually recreate the terraform.tfstate.
+        * The terraform.tfstate file you see here is the state file that Terraform uses to keep
+          track of the resources it manages.
+          * It’s used to perform diffs during the plan and detect configuration drift.
+            * It’s important not to edit, delete, or otherwise tamper with the ter-
+              raform.tfstate file, or Terraform could potentially lose track of the resources
+              it manages
 * dependency lock file
 * providers
   * go to hidden files: .terraform providers ... and find binary of the provider
@@ -128,10 +193,37 @@
   * resources describe one or more infrastructure objects
     * ec2, vpc, database
     * can be addresses: <RESOURCE TYPE>.<NAME>.<ATTRIBUTE>
+    * Terraform resources are
+        the most important elements in Terraform, as they provision infrastructure such as
+        VMs, load balancers, NAT gateways, and so forth
+    * Each resource has inputs and outputs.
+      * Inputs are called arguments,
+      * and outputs are called attributes.
+      * Arguments are passed through the resource and are also available as resource attributes
+      * There are also computed attributes that are only available after the
+        resource has been created
+        * Computed attributes contain calculated information
+          about the managed resource
+          * example: An Amazon Resource Name (ARN) is a file naming convention used to identify a particular
+            resource in the Amazon Web Services (AWS) public cloud
+            * ARN is
+    * All Terraform resources implement the resource schema interface
+            * The resource
+              schema mandates, among other things, that resources define CRUD functions hooks,
+              one each for Create() , Read() , Update() , and Delete()
+            * Terraform invokes these
+              hooks when certain conditions are met
+            * Generally speaking, Create() is called
+              during resource creation, Read() during plan generation, Update() during
+              resource updates, and Delete() during deletes.
+* Terraform concatenates all .tf files together
 * 3 types of variables
   * input
     * could have validation block
   * output
+        * Output values are used to do two things:
+           Pass values between modules
+           Print values to the CLI
   * local
     * like temporary variables
     * used for calculations, concatenations, conditionals
@@ -185,7 +277,12 @@
                 * values = ["DB Server"]
               * }
             * }
-
+* providers
+      * The AWS provider is responsible for
+        understanding API interactions, making authenticated requests, and exposing
+        resources to Terraform
+      * Even though we have declared the AWS provider, Terraform still needs to
+        download and install the binary from the Terraform Registry
 
 
 ## standard operations
