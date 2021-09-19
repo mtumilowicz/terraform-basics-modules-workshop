@@ -238,65 +238,26 @@
         }
         ```
 * provisioners VM
-  * local-provisioner (execute something locally after spinning up a VM)
-  * remote-provisioner (execute something remote on the VM)
-  * packer (build AMI, then launch AMI)
-  * cloud init (user_data in aws_instance)
-    * will run after ec2 instance will launch for the first time
-    * Resource provisioners are especially interesting because they are essentially back-
-      doors to the Terraform runtime.
-      * Provisioners can execute arbitrary code on either a
-      local or remote machine, which has many obvious security implications
-          * Resource provisioners allow you to execute scripts on local or remote machines as
-            part of resource creation or destruction
-          * They are used for various tasks, such as boot-
-            strapping, copying files, hacking into the mainframe, etc.
-          * Because resource provisioners call external scripts, there is an implicit
-            dependency on the OS interpreter.
-          * Provisioners allow you to dynamically extend functionality on resources by hooking
-            into resource lifecycle events. There are two kinds of resource provisioners:
-             Creation-time provisioners
-             Destruction-time provisioners
-          * Most people who use provisioners exclusively use creation-time provisioners: for
-            example, to run a script or kick off some miscellaneous automation task
-          * Sometimes resources are marked “cre-
-            ated” when actually it takes a few more seconds before they are truly ready.
-            * By inserting delays with the local-exec provisioner, you can solve many of these strange
-            race condition–style bugs.
-          * Resource provisioners should be used only as a method of last resort.
-            * The main advantage of Terraform is that it’s declarative and stateful.
-            * When you make calls out to external scripts, you undermine these core principles.
-          * HashiCorp has publicly stated that resource provisioners
-            are an anti-pattern, and they may even be deprecated in a newer version of Terraform
-* count vs for_each
-    * count
-      * module xxx { count = ["instance1", "instance2", "instance3"] }
-        * module.xxx_count[0].resource
-        * module.xxx_count[1].resource
-        * module.xxx_count[2].resource
-        * indexed by index in the list; if you remove instance2, resource3 will be recreated
-    * for each
-      * is a map where you could define your own key
-      * locals { mymap = { Instance1 = ..., Instance2 = ... } }
-      * module xxx { for_each = local.mymap instance_name = each.key }}
-* Provisioners are used to execute scripts on a local or remote machine as part of resource creation or destruction
-  * provisioner "local-exec" {
-    command = "echo ${aws_instance.testInstance.public_ip} >> public_ip.txt"
-    }
+    * resource provisioners are essentially backdoors to the Terraform runtime
+    * provisioners can execute arbitrary code on either a local or remote machine as part of resource
+    creation or destruction
+    * used for various tasks, such as bootstrapping, copying files
+    * call external scripts, there is an implicit dependency on the OS interpreter
+    * should be used only as a method of last resort
+    * are an anti-pattern, and they may even be deprecated in a newer version of Terraform
+        * example
+            * sometimes resources are marked "created" and it takes a few more seconds before they are truly ready
+                * don't: insert delays with the local-exec provisioner
+                * do: `resource "time_sleep"` and `depends_on = [time_sleep.wait_30_seconds]`
+    * types
+        * local-provisioner (execute something locally after spinning up a VM)
+        * remote-provisioner (execute something remote on the VM)
+
+
 * terraform templates
   * data "template_file" "template1" { }
   * resource "aws_instance" "web" { ... user_data = data.template_file.template1.rendered }
-* data "terraform_remote_state" "aws-state" { backend = s3 }
-  * useful to generate outputs
-    * datasources provide you with dynamic information
-        * example: list of AMIs
-        * data sources - way terraform can query aws and return results (perform API request)
-            * data "aws_instance" "dbsearch" {
-              * filter {
-                * name = "tag:Name"
-                * values = ["DB Server"]
-              * }
-            * }
+
 * providers
       * The AWS provider is responsible for
         understanding API interactions, making authenticated requests, and exposing
@@ -369,7 +330,17 @@
                       * This downtime is not negligi-
                         ble and can be anywhere from five minutes to an hour or more, depending on the
                         upstream API.
-
+* count vs for_each
+    * count
+      * module xxx { count = ["instance1", "instance2", "instance3"] }
+        * module.xxx_count[0].resource
+        * module.xxx_count[1].resource
+        * module.xxx_count[2].resource
+        * indexed by index in the list; if you remove instance2, resource3 will be recreated
+    * for each
+      * is a map where you could define your own key
+      * locals { mymap = { Instance1 = ..., Instance2 = ... } }
+      * module xxx { for_each = local.mymap instance_name = each.key }}
 ## module
 * information flow
   * powerful way to reuse code
