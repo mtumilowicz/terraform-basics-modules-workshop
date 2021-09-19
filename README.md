@@ -18,6 +18,7 @@
     * [More than Certified in Terraform](https://www.udemy.com/course/terraform-certified/)
     * https://www.terraform.io/docs/language/state/backends.html
     * [Terraform in Action](https://www.manning.com/books/terraform-in-action)
+    * https://www.packer.io/intro
 
 ## preface
 * goals of this workshops
@@ -35,52 +36,44 @@
     1. pt4_aws
 
 ## infrastructure as a code
-* is the process of managing and provisioning infrastructure through machine-readable definition files
-* infrastructure refers to cloud-based infrastructure
-    * but anything that could be controlled through an API technically qualifies as infrastructure
-* infrastructure provisioning and configuration management are inherently different problems
+* is the process of managing and provisioning infrastructure through definition files
+* what is infrastructure?
+    * anything that could be controlled through an API
+    * usually: cloud-based infrastructure
+* infrastructure provisioning vs configuration management
+    * inherently different problems
     * provisioning = deploying infrastructure
+        * Terraform favors immutable infrastructure
+        * immutable infrastructure = infrastructure as a disposable commodity
     * configuration management = application delivery on virtual machines (VMs)
-    * CM tools favor mutable infrastructure
-        * mutable infrastructure = updates on existing servers
-    * Terraform favors immutable infrastructure
-        * Immutable infrastructure treats infrastructure as a disposable commodity
-* terraform
-    * automate provisioning of the infrastructure itself
-    * is a deployment technology
-    * cloud agnostic
-        * integrates with different clouds through Terraform providers (plugins)
-    * Fundamentally, Terraform is a state management tool that performs
-      CRUD operations (create, read, update, delete) on managed resources
-        * Anything
-        that can be represented as CRUD can be managed as a Terraform resource.
-        * Terraform uses the same APIs you would use if you were writing an
-          automation script to deploy infrastructure
-        * The difference is that Terraform doesn’t
-          just deploy infrastructure: Terraform manages it
-        * Terraform intrinsically understands
-          dependencies between resources and can even detect and correct for configuration
-          drift
-        * Terraform is a simple state management engine
-* packer
-    * can build AWS AMIs based on templates
-    * instead of installing the software after booting up an instance, you
-    can create an AMI with all the necessary software on
-    * speed up boot times of instances
-    * common approach when you run a horizontally scaled app layer or a cluster
+        * CM tools favor mutable infrastructure
+            * mutable infrastructure = updates on existing servers
+* terraform vs packer vs ainsible
+    * terraform
+        * automates provisioning of the infrastructure
+        * makes your infrastructure auditable
+            * keep your infrastructure change history in git
+        * cloud agnostic
+            * integrates with different clouds through providers (plugins)
+        * a state management tool that performs CRUD operations on managed resources
+            * anything that can be represented as CRUD can be managed as a Terraform resource
+            * uses the same APIs you would use if you were writing an automation script
+                * difference: not only deployment but also infrastructure management
+            * understands dependencies between resources
+            * can even detect and correct for configuration drift
+        * is a simple state management engine
+    * packer
+        * example: build AWS AMIs based on templates
+        * instead of installing the software after booting up an instance, you
+        can create an AMI with all the necessary software on from a machine image
+            * machine image is a single static unit that contains a pre-configured operating system
+            and installed software which is used to quickly create new running machines
+        * speed up boot times of instances
+        * common approach when you run a horizontally scaled app layer or a cluster
 * ainsible
     * install software after the infrastructure is provisioned
     * has a focus on automating the installation and configuration of software
-* 2 ways to provision software on your instances
-    * build your own custom AMI and bundle your software with the image
-        * Packer is great tool to do this
-    * boot standarized AMIs and then install the software on it
-        * upload a script then execute it, using file uploads + remote exec
-        * using automation tools like ansible
-            * you run terraform first, output the IP addresses, then run ansible-playbook on those hosts
-* pros
-    * make your infrastructure auditable
-        * you can keep your infrastructure change history in git
+    * example: security updates
 
 ## introduction
 * terraform plan
