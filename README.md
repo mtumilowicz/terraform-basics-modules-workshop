@@ -100,85 +100,38 @@
     * upstream
           * terraform does not create resources - it makes the cloud api to create it
               * api (aws api, google cloud api, github api, ...)
-* project structure
-    * `.terraform`
-        * binary of the provider (initialized with during `terraform init`)
-    * `terraform.lock.hcl`
-        * provider dependency lockfile
-            * providers (plugins for Terraform that extend it with support for interacting with various external systems)
-                  Both of these dependency types can be published and updated independently from Terraform itself and from the
-                  configurations that depend on them.
-                  For that reason, Terraform must determine which versions of those dependencies are potentially compatible with
-                  the current configuration and which versions are currently selected for use.
-        * created when `terraform init`
-        * tracks versions of providers and modules
-        * should be committed to git
-        * re-runs of terraform will use the same provider/module versions
-            * for example when terraform is ran by other members of your team or using automation
-    * `*.tf` files
-        * configuration files are stored in plain text files with the .tf file extension
-        * terraform evaluates all of the configuration files in a module, effectively treating the entire module
-        as a single document
-            * separating various blocks into different files is purely for the convenience of readers and has
-            no effect on the module's behavior
-    * `*.tfvars` files
-        * values assignments to variables
-    * `terraform.tfstate`
-    * `terraform.tfstate.backup`
-        * terraform leaves behind a `terraform.tfstate.backup` file in case you need to recover to the last deployed
-        state
-    * module directories
-        * module is a collection of `.tf` files kept together in a directory
-            * nested directories are treated as completely separate modules, and are not automatically included in
-            the configuration
-* terraform plan
-    * You should always run
-    terraform plan before deploying
-    * terraform plan informs
-      you about what Terraform intends to do and acts as a linter, letting you know about
-      any syntax or dependency errors
-    * The three main stages of a terraform plan are as follows:
-      1. Read the configuration and state.
-         * main.tf
-         * Terraform reads your configuration and state files (if they exist).
-      1. Determine actions to take.
-         * terraform.tfstate
-         * Terraform performs a calculation to determine what needs to be done to achieve
-           the desired state. This can be one of Create() , Read() , Update() , Delete() , or No-op .
-      1. Output the plan.
-         * An execution plan ensures that actions occur in the right order to avoid dependency problems.
-         * This is more relevant when you have lots of resources.
-    * algo
-        1. Refresh state
-        2. Read configuration: main.tf
-        3. Read state: terraform.tfstate
-        4. Resource in state?
-            * YES -> Read()
-                1. Has changes?
-                    * Yes -> Is Destroy Plan?
-                        * Yes -> Delete()
-                        * No -> Update()
-                    * No -> No-op
-            * NO - Create()
-        5. Output plan
-    * As you can see, Terraform has noticed that we altered the content attribute and is
-      therefore proposing to destroy the old resource and create a new resource in its stead.
-      * This is done rather than updating the attribute in place because content is marked
-      as a force new attribute, which means if you change it, the whole resource is tainted.
-        * This is a classic example of immutable infrastructure, although not all attributes of
-          managed Terraform resources behave like this
-        * In fact, most resources have regular in-
-          place (i.e. mutable) updates
-                  * If one of the force-new attributes ( ami , instance_type , user_data ) was modified,
-                    then during a subsequent terraform apply , the existing resource would be
-                    destroyed before the new one was created
-                      * This is Terraform’s default behavior
-                      * The
-                        drawback is that there is downtime between when the old resource is destroyed and
-                        the replacement resource is provisioned
-                      * This downtime is not negligi-
-                        ble and can be anywhere from five minutes to an hour or more, depending on the
-                        upstream API.
+### project structure
+* `.terraform`
+    * binary of the provider (initialized with during `terraform init`)
+* `terraform.lock.hcl`
+    * provider dependency lockfile
+        * providers (plugins for Terraform that extend it with support for interacting with various external systems)
+              Both of these dependency types can be published and updated independently from Terraform itself and from the
+              configurations that depend on them.
+              For that reason, Terraform must determine which versions of those dependencies are potentially compatible with
+              the current configuration and which versions are currently selected for use.
+    * created when `terraform init`
+    * tracks versions of providers and modules
+    * should be committed to git
+    * re-runs of terraform will use the same provider/module versions
+        * for example when terraform is ran by other members of your team or using automation
+* `*.tf` files
+    * configuration files are stored in plain text files with the `.tf` file extension
+* `*.tfvars` files
+    * values assignments to variables
+* `terraform.tfstate`
+* `terraform.tfstate.backup`
+    * terraform leaves behind a `terraform.tfstate.backup` file in case you need to recover to the last deployed
+    state
+* module directories
+    * module is a collection of `.tf` files kept together in a directory
+        * nested directories are treated as completely separate modules, and are not automatically included in
+        the configuration
+    * root module = main directory
+    * terraform evaluates all of the configuration files in a module, effectively treating the entire module
+    as a single document
+        * separating various blocks into different files is purely for the convenience of readers and has
+        no effect on the module's behavior
 * dynamic blocks
 * interpolation ${}
 * variables
@@ -354,6 +307,54 @@
     * terraform plan
     * terraform destroy
     * terraform refresh
+* terraform plan
+    * You should always run
+    terraform plan before deploying
+    * terraform plan informs
+      you about what Terraform intends to do and acts as a linter, letting you know about
+      any syntax or dependency errors
+    * The three main stages of a terraform plan are as follows:
+      1. Read the configuration and state.
+         * main.tf
+         * Terraform reads your configuration and state files (if they exist).
+      1. Determine actions to take.
+         * terraform.tfstate
+         * Terraform performs a calculation to determine what needs to be done to achieve
+           the desired state. This can be one of Create() , Read() , Update() , Delete() , or No-op .
+      1. Output the plan.
+         * An execution plan ensures that actions occur in the right order to avoid dependency problems.
+         * This is more relevant when you have lots of resources.
+    * algo
+        1. Refresh state
+        2. Read configuration: main.tf
+        3. Read state: terraform.tfstate
+        4. Resource in state?
+            * YES -> Read()
+                1. Has changes?
+                    * Yes -> Is Destroy Plan?
+                        * Yes -> Delete()
+                        * No -> Update()
+                    * No -> No-op
+            * NO - Create()
+        5. Output plan
+    * As you can see, Terraform has noticed that we altered the content attribute and is
+      therefore proposing to destroy the old resource and create a new resource in its stead.
+      * This is done rather than updating the attribute in place because content is marked
+      as a force new attribute, which means if you change it, the whole resource is tainted.
+        * This is a classic example of immutable infrastructure, although not all attributes of
+          managed Terraform resources behave like this
+        * In fact, most resources have regular in-
+          place (i.e. mutable) updates
+                  * If one of the force-new attributes ( ami , instance_type , user_data ) was modified,
+                    then during a subsequent terraform apply , the existing resource would be
+                    destroyed before the new one was created
+                      * This is Terraform’s default behavior
+                      * The
+                        drawback is that there is downtime between when the old resource is destroyed and
+                        the replacement resource is provisioned
+                      * This downtime is not negligi-
+                        ble and can be anywhere from five minutes to an hour or more, depending on the
+                        upstream API.
 
 ## module
 * information flow
