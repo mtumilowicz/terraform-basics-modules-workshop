@@ -85,6 +85,9 @@
         * construction of the Resource Graph (DAG)
         * plan execution
         * communication with plugins over RPC
+        * contains language interpreter, the CLI and how to interact with providers
+            * doesn't contain the code to interact with the API of the cloud providers to create resources
+            * that code is in providers, which be installed separately when invoking "terraform init"
     * plugins (providers and provisioners)
         * exposes an implementation for a specific service, such as AWS, or provisioner, such as bash
         * executed as a separate process and communicate with the main Terraform binary over an RPC interface
@@ -265,9 +268,6 @@
             * When you make calls out to external scripts, you undermine these core principles.
           * HashiCorp has publicly stated that resource provisioners
             are an anti-pattern, and they may even be deprecated in a newer version of Terraform
-* terraform core contains language interpreter, the CLI and how to interact with providers
-  * it doesn't contain the code to interact with the API of the cloud providers to create resources
-  * that code is in providers, which be installed separately when invoking "terraform init"
 * count vs for_each
     * count
       * module xxx { count = ["instance1", "instance2", "instance3"] }
