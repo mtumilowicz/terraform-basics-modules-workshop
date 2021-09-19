@@ -121,6 +121,16 @@
           managed Terraform resources behave like this
         * In fact, most resources have regular in-
           place (i.e. mutable) updates
+                  * If one of the force-new attributes ( ami , instance_type , user_data ) was modified,
+                    then during a subsequent terraform apply , the existing resource would be
+                    destroyed before the new one was created
+                      * This is Terraform’s default behavior
+                      * The
+                        drawback is that there is downtime between when the old resource is destroyed and
+                        the replacement resource is provisioned
+                      * This downtime is not negligi-
+                        ble and can be anywhere from five minutes to an hour or more, depending on the
+                        upstream API.
 * terraform is separated into 3 separate parts
   * core
         * parser
@@ -234,6 +244,31 @@
   * packer (build AMI, then launch AMI)
   * cloud init (user_data in aws_instance)
     * will run after ec2 instance will launch for the first time
+    * Resource provisioners are especially interesting because they are essentially back-
+      doors to the Terraform runtime.
+      * Provisioners can execute arbitrary code on either a
+      local or remote machine, which has many obvious security implications
+          * Resource provisioners allow you to execute scripts on local or remote machines as
+            part of resource creation or destruction
+          * They are used for various tasks, such as boot-
+            strapping, copying files, hacking into the mainframe, etc.
+          * Because resource provisioners call external scripts, there is an implicit
+            dependency on the OS interpreter.
+          * Provisioners allow you to dynamically extend functionality on resources by hooking
+            into resource lifecycle events. There are two kinds of resource provisioners:
+             Creation-time provisioners
+             Destruction-time provisioners
+          * Most people who use provisioners exclusively use creation-time provisioners: for
+            example, to run a script or kick off some miscellaneous automation task
+          * Sometimes resources are marked “cre-
+            ated” when actually it takes a few more seconds before they are truly ready.
+            * By inserting delays with the local-exec provisioner, you can solve many of these strange
+            race condition–style bugs.
+          * Resource provisioners should be used only as a method of last resort.
+            * The main advantage of Terraform is that it’s declarative and stateful.
+            * When you make calls out to external scripts, you undermine these core principles.
+          * HashiCorp has publicly stated that resource provisioners
+            are an anti-pattern, and they may even be deprecated in a newer version of Terraform
 * terraform core contains language interpreter, the CLI and how to interact with providers
   * it doesn't contain the code to interact with the API of the cloud providers to create resources
   * that code is in providers, which be installed separately when invoking "terraform init"
@@ -301,6 +336,46 @@
   * use external modules or write modules yourself
   * https://registry.terraform.io/namespaces/terraform-aws-modules
     * https://registry.terraform.io/modules/terraform-aws-modules/eks/aws/latest
+    * Modules are self-contained packages of code that allow you to create reusable compo-
+      nents by grouping related resources together
+    * Modules are useful tools for promoting software abstraction and code reuse.
+    * 4.2.1 Module syntax
+        * When I think about modules, the analogy of building with toy blocks always comes to
+          mind
+        * If resources and data sources are the individual building blocks of Terraform,
+          then modules are prefabricated groupings of many such blocks
+        * module "lb_sg" { }
+    * 4.2.2 What is the root module?
+        * Every workspace has a root module; it’s the directory where you run terraform apply
+        * Under the root module, you may have one or more child modules to help you organ-
+          ize and reuse configuration
+        * Modules can be sourced either locally (meaning they are
+          embedded within the root module) or remotely (meaning they are downloaded from
+          a remote location as part of terraform init )
+        * children-within-children module pattern is called nested modules
+        * HashiCorp strongly recommends that every module follow certain code conventions
+          known as the standard module structure
+          (www.terraform.io/docs/modules/index.html#standard-module-structure)
+          * three Terraform configuration files per module:
+             main.tf—the primary entry point
+             outputs.tf—declarations for all output values
+             variables.tf—declarations for all input variables
+          * versions.tf, providers.tf, and README.md are considered required files
+            in the root module
+* 4.3 Root module
+    * is the top-level module
+    * It’s where user-supplied input variables are
+      configured and where Terraform commands such as terraform init and terra-
+      form apply are run
+    * In our root module, there will be three input variables and two output values
+        * input variables are namespace , ssh_keypair , and region
+        * two output values are db_password and lb_dns_name
+    * The namespace variable is a project identifier
+        * project_name and environment
+* Remote modules can be fetched from the Terraform Registry with either terra-
+  form init or terraform get
+  * But not only the Terraform configuration is downloaded; everything in those modules is downloaded.
+
 
 ## remote backend
 * create resources first, then uncomment the backend cofiguration, then init
@@ -327,6 +402,18 @@
     you run terraform apply)
       * increases security
   * make sure only terraform administrators have access to s3 bucket where the state resides
+* In Terraform, race conditions
+  occur when two people are trying to access the same state file at the same time, such as
+  when one is performing a terraform apply and another is performing terraform
+  destroy
+    * If this happens, your state file can become out of sync with what’s actually
+      deployed, resulting in what is known as a corrupted state
+    * Using a remote backend end
+      with a state lock prevents this from happening
+ Store sensitive information securely
+    * In the unlikely event that two people try to deploy against the same remote backend
+      at the same time, only one user will be able to acquire the state lock—the other will
+      fail.
 
 ## workspaces
   * when you create a new workspace, you start with empty state
@@ -410,3 +497,97 @@ aws --endpoint-url=http://localhost:4566 ec2 describe-instances
     * for_each
         * It takes a map / set as input and uses the key of a map as an index of instances of created resource.
 1. show why validation is important (internal_port - if you change from 8080 it will not work)
+
+## secrets management
+* Terraform is an infrastructure provisioning
+  technology and therefore handles a lot of secrets—more than most people realize.
+  Secrets like database passwords, personal identification information (PII), and
+  encryption keys may all be consumed and managed by Terraform.
+* Worse, many of
+  these secrets appear as plaintext, either in Terraform state or in log files.
+  * Sensitive information will inevitably find its way into Terraform state pretty much no
+    matter what you do.
+  * Terraform does not treat attributes containing sensitive data any differ-
+    ently than it treats non-sensitive attributes.
+    * Therefore, any and all sensitive data is put
+      in the state file, which is stored as plaintext JSON.
+  * Because you can’t prevent secrets
+    from making their way into Terraform state, it’s imperative that you treat the state file
+    as sensitive and secure it accordingly.
+    * Only three configuration blocks can store stateful information (sensitive or otherwise)
+    in Terraform: resources, data sources, and output values.
+    * Other kinds of configuration blocks (pro-
+      viders, input variables, local values, modules, etc.) do not store stateful data.
+      * Any of
+        these other blocks may leak sensitive information in other ways, but at least you do not
+        need to worry about them saving sensitive information to the state file.
+* example
+    * https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/db_instance
+        * two secrets: var.username and var.password .
+          * Since both of these
+            attributes are defined as required , if you want Terraform to provision an RDS data-
+            base, you must be willing to accept that your master username and password secret val-
+            ues exist in Terraform state
+        * username and password appear
+                  as plaintext in Terraform state
+* you need to treat the state file as secret and gate who has access to it
+    * Encryption at rest is the act of translating data into a format that cannot be decrypted
+      except by authorized users
+    * Even if a malicious user were to gain
+      physical access to the machines storing encrypted data, the data would be useless to
+      them.
+    * Encrypting data in transit is just as important as encrypting data at rest.
+      * The standard
+        way to do this is to ensure that data is exclusively transmitted over SSL/TLS, which
+        is enabled by default for most backends including S3, Terraform Cloud, and Terraform
+        Enterprise
+* static secrets
+      * Static secrets are sensitive values that do not change, or at least do not change often.
+      * Most secrets can be classified as static secrets.
+      * Things like username and passwords,
+        long-lived oAuth tokens, and config files containing credentials are all examples of
+        static secrets.
+        * There are two major ways to pass static secrets into Terraform: as environment variables
+          and as Terraform variables.
+            * I recommend passing secrets as environment variables
+              whenever possible because it is far safer than the alternative.
+    * Environment variables do
+      not show up in the state or plan files, and it’s harder for malicious users to access your
+      sensitive values as compared to Terraform variables.
+    * example
+            * When configuring a Terraform provider, you definitely do not want to pass sensitive
+              information as regular Terraform variables:
+              provider "aws" {
+                region = "us-west-2"
+                access_key = var.access_key // A very bad idea!
+                secret_key = var.secret_key // A very bad idea!
+              }
+    * The recommended approach is therefore to configure providers using environ-
+      ment variables:
+      provider "aws" {
+        region = "us-west-2"
+      }
+        * If you wish to deploy an RDS database, you are stuck setting username and password
+          as Terraform variables, since there is no option for using environment variables
+    * After running Terraform in automation, you should seek to isolate sensitive Terra-
+      form variables from non-sensitive Terraform variables.
+          * Terraform does not automatically
+            load variable-definition files with any name other than terraform.tfvars , but you
+            can specify other files using the -var-file flag.
+            * For instance, if you have non-sensi-
+              tive data stored in production.tfvars (possibly checked into Git) and sensitive
+              data stored in secrets.tfvars (definitely not checked into Git), the following com-
+              mand will do the trick:
+              * terraform apply \
+                -var-file="secrets.tfvars" \
+                -var-file="production.tfvars"
+        * Sensitive variables can be defined by setting the sensitive argument to true:
+        * Variables defined as sensitive appear in Terraform state but are redacted from CLI
+          output.
+            * Defining a variable as sensitive prevents users from accidently exposing secrets but
+              does not stop motivated individuals.
+              * Consider instead the following code, which redirects var.password to local
+                _file
+      * Secrets should be rotated periodically: at least once every 90 days, or in response to
+        known security threats.
+        * AWS Secrets Manager
