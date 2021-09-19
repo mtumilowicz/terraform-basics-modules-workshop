@@ -19,6 +19,11 @@
     * https://www.terraform.io/docs/language/state/backends.html
     * [Terraform in Action](https://www.manning.com/books/terraform-in-action)
     * https://www.packer.io/intro
+    * https://www.terraform.io/docs/language/dependency-lock.html
+    * https://www.terraform.io/docs/extend/how-terraform-works.html
+    * https://www.terraform.io/docs/language/files/index.html
+    * https://www.terraform.io/docs/cli/state/recover.html
+    * https://acloudguru.com/hands-on-labs/exploring-terraform-state-functionality
 
 ## preface
 * goals of this workshops
@@ -76,6 +81,56 @@
     * example: security updates
 
 ## introduction
+### terraform structure
+* terraform is separated into 3 separate parts
+    * core
+        * reading and interpolating configuration files and modules
+        * resource state management
+        * construction of the Resource Graph (DAG)
+        * plan execution
+        * communication with plugins over RPC
+    * plugins (providers and provisioners)
+        * exposes an implementation for a specific service, such as AWS, or provisioner, such as bash
+        * executed as a separate process and communicate with the main Terraform binary over an RPC interface
+        * providers
+            * define Resources that map to specific Services
+            * authentication with the Infrastructure Provider
+        * provisioners
+            * executing commands or scripts on the designated Resource after creation, or on destruction
+    * upstream
+          * terraform does not create resources - it makes the cloud api to create it
+              * api (aws api, google cloud api, github api, ...)
+* project structure
+    * `.terraform`
+        * binary of the provider (initialized with during `terraform init`)
+    * `terraform.lock.hcl`
+        * provider dependency lockfile
+            * providers (plugins for Terraform that extend it with support for interacting with various external systems)
+                  Both of these dependency types can be published and updated independently from Terraform itself and from the
+                  configurations that depend on them.
+                  For that reason, Terraform must determine which versions of those dependencies are potentially compatible with
+                  the current configuration and which versions are currently selected for use.
+        * created when `terraform init`
+        * tracks versions of providers and modules
+        * should be committed to git
+        * re-runs of terraform will use the same provider/module versions
+            * for example when terraform is ran by other members of your team or using automation
+    * `*.tf` files
+        * configuration files are stored in plain text files with the .tf file extension
+        * terraform evaluates all of the configuration files in a module, effectively treating the entire module
+        as a single document
+            * separating various blocks into different files is purely for the convenience of readers and has
+            no effect on the module's behavior
+    * `*.tfvars` files
+        * values assignments to variables
+    * `terraform.tfstate`
+    * `terraform.tfstate.backup`
+        * terraform leaves behind a `terraform.tfstate.backup` file in case you need to recover to the last deployed
+        state
+    * module directories
+        * module is a collection of `.tf` files kept together in a directory
+            * nested directories are treated as completely separate modules, and are not automatically included in
+            the configuration
 * terraform plan
     * You should always run
     terraform plan before deploying
@@ -124,22 +179,6 @@
                       * This downtime is not negligi-
                         ble and can be anywhere from five minutes to an hour or more, depending on the
                         upstream API.
-* terraform is separated into 3 separate parts
-  * core
-        * parser
-        * config
-        * dag
-        * schema
-        * operations: diff(), apply(), refresh()
-  * providers
-        * resource
-        * operations: CRUD
-  * upstream
-        * terraform not control but interaction takes place
-        * actually creates resources - terraform does not create resources - it makes
-        google cloud api to create it
-        * api (google cloud api, github api, ...)
-        * services
 * dynamic blocks
 * interpolation ${}
 * variables
@@ -185,9 +224,6 @@
             * It’s important not to edit, delete, or otherwise tamper with the ter-
               raform.tfstate file, or Terraform could potentially lose track of the resources
               it manages
-* dependency lock file
-* providers
-  * go to hidden files: .terraform providers ... and find binary of the provider
 * resources and datasources
   * datasources allow data to be fetched or computed from outside of the terraform
     * example: AMI list that can be filtered to extract AMI IDs
@@ -265,17 +301,6 @@
 * terraform core contains language interpreter, the CLI and how to interact with providers
   * it doesn't contain the code to interact with the API of the cloud providers to create resources
   * that code is in providers, which be installed separately when invoking "terraform init"
-* lockfile
-  * from 0.14 terraform will use a provider dependency lockfile
-  * file created when terraform init
-  * is called: .terraform.lock.hcl
-  * file tracks versions of providers and modules
-  * should be committed to git
-  * when committed to git, re-runs of terraform will use the same
-  provider/module versions you used during execution (when terraform is ran
-  by other members of your team or using automation)
-  * terraform stores checksums of the archive to be able to verify the checksum
-  * will update the lockfile when you make changes to the provider requirements
 * count vs for_each
     * count
       * module xxx { count = ["instance1", "instance2", "instance3"] }
@@ -314,6 +339,13 @@
 
 
 ## standard operations
+* terraform init
+    * When terraform init is run, Terraform reads configuration files in the working directory to determine which plugins are necessary, searches for installed plugins in several locations, sometimes downloads additional plugins, decides which plugin versions to use, and writes a lock file to ensure Terraform will use the same plugin versions in this directory until terraform init runs again.
+    * After locating any installed plugins, terraform init compares them to the configuration's version constraints and chooses a version for each plugin as follows:
+
+      If any acceptable versions are installed, Terraform uses the newest installed version that meets the constraint (even if the Terraform Registry has a newer acceptable version).
+      If no acceptable versions are installed and the plugin is one of the providers distributed by HashiCorp, Terraform downloads the newest acceptable version from the Terraform Registry and saves it in a subdirectory under .terraform/providers/.
+      If no acceptable versions are installed and the plugin is not distributed in the Terraform Registry, initialization fails and the user must manually install an appropriate version.
 * terraform plan with export -> terraform apply with that plan
 * terraform apply = terraform plan -out file ; terraform apply file ; rm file
     * terraform init
@@ -368,7 +400,10 @@
 * Remote modules can be fetched from the Terraform Registry with either terra-
   form init or terraform get
   * But not only the Terraform configuration is downloaded; everything in those modules is downloaded.
+Terraform always runs in the context of a single root module. A complete Terraform configuration consists of a root module and the tree of child modules (which includes the modules called by the root module, any modules called by those modules, etc.).
 
+In Terraform CLI, the root module is the working directory where Terraform is invoked. (You can use command line options to specify a root module outside the working directory, but in practice this is rare. )
+In Terraform Cloud and Terraform Enterprise, the root module for a workspace defaults to the top level of the configuration directory (supplied via version control repository or direct upload), but the workspace settings can specify a subdirectory to use instead.
 
 ## remote backend
 * create resources first, then uncomment the backend cofiguration, then init
@@ -438,11 +473,7 @@ aws --endpoint-url=http://localhost:4566 ec2 describe-instances
 1. https://www.terraform.io/docs/language/dependency-lock.html
     A Terraform configuration may refer to two different kinds of external dependency that come from outside of its own codebase:
 
-    Providers, which are plugins for Terraform that extend it with support for interacting with various external systems.
-    Both of these dependency types can be published and updated independently from Terraform itself and from the
-    configurations that depend on them.
-    For that reason, Terraform must determine which versions of those dependencies are potentially compatible with
-    the current configuration and which versions are currently selected for use.
+
 
     Version constraints within the configuration itself determine which versions of dependencies are potentially
     compatible, but after selecting a specific version of each dependency Terraform remembers the decisions
