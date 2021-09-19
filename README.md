@@ -1,6 +1,5 @@
 # terraform-workshop
 * references
-    * https://www.terraform.io/docs/language/dependency-lock.html
     * https://discuss.hashicorp.com/t/terraform-0-14-the-dependency-lock-file/15696
     * https://medium.com/@business_99069/terraform-count-vs-for-each-b7ada2c0b186
     * https://hub.docker.com/r/danjellz/http-server
@@ -16,14 +15,11 @@
     * [Terraform for AWS - Beginner to Expert 2021 (0.12)](https://www.udemy.com/course/terraform-fast-track)
     * [Learn DevOps: Infrastructure Automation With Terraform](https://www.udemy.com/course/learn-devops-infrastructure-automation-with-terraform)
     * [More than Certified in Terraform](https://www.udemy.com/course/terraform-certified/)
-    * https://www.terraform.io/docs/language/state/backends.html
     * [Terraform in Action](https://www.manning.com/books/terraform-in-action)
     * https://www.packer.io/intro
-    * https://www.terraform.io/docs/language/dependency-lock.html
-    * https://www.terraform.io/docs/extend/how-terraform-works.html
-    * https://www.terraform.io/docs/language/files/index.html
-    * https://www.terraform.io/docs/cli/state/recover.html
+    * https://www.terraform.io/docs
     * https://acloudguru.com/hands-on-labs/exploring-terraform-state-functionality
+    * https://www.andreagrandi.it/2017/08/25/getting-latest-ubuntu-ami-with-terraform/
 
 ## preface
 * goals of this workshops
@@ -117,9 +113,29 @@
         * for example when terraform is ran by other members of your team or using automation
 * `*.tf` files
     * configuration files are stored in plain text files with the `.tf` file extension
+    * terraform concatenates all `.tf` files together (the context is a module - explained below)
 * `*.tfvars` files
     * values assignments to variables
 * `terraform.tfstate`
+    * is the state file that Terraform uses to keep track of the resources it manages
+        * used to perform diffs during the plan and detect configuration drift
+    * example
+        ```
+        {
+          "version": 4,
+          "terraform_version": "1.0.5",
+          "serial": 10, // monotonically increasing with every apply and destroy
+          "lineage": "d7fe6d32-593e-60c6-52f2-dff37b956408", // unique ID assigned to a state when it is created
+          "outputs": {}, // outputs from last apply
+          "resources": []
+        }
+        ```
+        * "lineage" and "serial" matters only during validation when `terraform state push` (push the state specified
+        to the currently configured backend)
+    * what happens when removed?
+        * it is not recreate automatically
+        * use `terraform import` to manually recreate it
+    * it’s important not to edit, delete, or Terraform could potentially lose track of the resources it manages
 * `terraform.tfstate.backup`
     * terraform leaves behind a `terraform.tfstate.backup` file in case you need to recover to the last deployed
     state
@@ -132,94 +148,92 @@
     as a single document
         * separating various blocks into different files is purely for the convenience of readers and has
         no effect on the module's behavior
-* dynamic blocks
-* interpolation ${}
+### language
+* resources
+    * describe one or more infrastructure objects
+    * example: ec2, vpc, database
+    * have inputs and outputs
+        * inputs are called arguments
+        * outputs are called attributes
+        * arguments are passed through the resource and are also available as attributes
+        * there are also computed attributes that are only available after the creation
+            * example: AWS `arn:partition:service:region:account-id:resource-type:resource-id`
+    * implement the resource schema interface
+        * schema mandates, above all, definitions of CRUD functions hooks
+        * Terraform invokes these hooks when certain conditions are met
+            * example
+                * `Create()` is called during resource creation
+                * `Read()` during plan generation
 * variables
-    * variables can be validated
-    * variables can be declared sensitive
-      * they exist in the state
-      * how to set variable:
-        * solution1: terraform plan -var variable-name=value
-        * solution2: export TF_VAR_variable-name=value
-        * solution3: declare in .tfvars
-          * terraform plan --var-file west.tfvars
-* tfstate
-    ```
-    {
-      "version": 4,
-      "terraform_version": "1.0.5",
-      "serial": 10,
-      "lineage": "d7fe6d32-593e-60c6-52f2-dff37b956408",
-      "outputs": {},
-      "resources": []
-    }
-    ```
-    * The "lineage" is a unique ID assigned to a state when it is created. If a lineage is different, then it means the states were created at different times and its very likely you're modifying a different state. Terraform will not allow this.
-    * Every state has a monotonically increasing "serial" number. If the destination state has a higher serial, Terraform will not allow you to write it since it means that changes have occurred since the state you're attempting to write.
-    * terraform state
-      * list - list the state
-      * mv - move an item in the state (or rename)
-      * pull - pull current state and output to stdout
-      * push - push local file to statefile
-      * replace-provider - replace in the state file
-      * rm - remove item from state
-      * show
-      * when you will need to modify the state
-        * when upgrading between versions
-        * when you want to rename a resource without recreating it
-        * when you want to stop managing but don't want to destroy
-    * What happens when terraform.tfstate is removed?
-      * terraform doesn't recreate the terraform tfstate file itself automatically.
-      * You can use terraform import to manually recreate the terraform.tfstate.
-        * The terraform.tfstate file you see here is the state file that Terraform uses to keep
-          track of the resources it manages.
-          * It’s used to perform diffs during the plan and detect configuration drift.
-            * It’s important not to edit, delete, or otherwise tamper with the ter-
-              raform.tfstate file, or Terraform could potentially lose track of the resources
-              it manages
-* resources and datasources
-  * datasources allow data to be fetched or computed from outside of the terraform
-    * example: AMI list that can be filtered to extract AMI IDs
-    * data "aws_ami" "ubuntu"
-    * can be addressed: data.<RESOURCE TYPE>.<NAME>.<ATTRIBUTE>
-  * resources describe one or more infrastructure objects
-    * ec2, vpc, database
-    * can be addresses: <RESOURCE TYPE>.<NAME>.<ATTRIBUTE>
-    * Terraform resources are
-        the most important elements in Terraform, as they provision infrastructure such as
-        VMs, load balancers, NAT gateways, and so forth
-    * Each resource has inputs and outputs.
-      * Inputs are called arguments,
-      * and outputs are called attributes.
-      * Arguments are passed through the resource and are also available as resource attributes
-      * There are also computed attributes that are only available after the
-        resource has been created
-        * Computed attributes contain calculated information
-          about the managed resource
-          * example: An Amazon Resource Name (ARN) is a file naming convention used to identify a particular
-            resource in the Amazon Web Services (AWS) public cloud
-            * ARN is
-    * All Terraform resources implement the resource schema interface
-            * The resource
-              schema mandates, among other things, that resources define CRUD functions hooks,
-              one each for Create() , Read() , Update() , and Delete()
-            * Terraform invokes these
-              hooks when certain conditions are met
-            * Generally speaking, Create() is called
-              during resource creation, Read() during plan generation, Update() during
-              resource updates, and Delete() during deletes.
-* Terraform concatenates all .tf files together
-* 3 types of variables
-  * input
-    * could have validation block
-  * output
-        * Output values are used to do two things:
-           Pass values between modules
-           Print values to the CLI
-  * local
-    * like temporary variables
-    * used for calculations, concatenations, conditionals
-      * results are used later within resources
+    * variables should be validated
+        * example - usualy internal ports are fixed
+            ```
+            variable "internal_port" {
+              type    = number
+              default = 8080
+
+              validation {
+                condition     = var.internal_port == 8080
+                error_message = "The internal port must be 8080."
+              }
+            }
+            ```
+    * declare variables in `.tfvars`
+        * terraform also automatically loads variable definitions if:
+            * named exactly `terraform.tfvars`
+            * names ending in `.auto.tfvars`
+        * otherwise append `--var-file prod.tfvars` to the terraform command
+            * example: `terraform apply --var-file prod.tfvars`
+    * three types
+        * input
+        * output
+            * pass values between modules
+            * print values to the CLI
+        * local
+            * like temporary variables
+            * used for calculations, concatenations, conditionals
+            * example
+                ```
+                locals {
+                  name_suffix = "${var.resource_tags["project"]}-${var.resource_tags["environment"]}"
+                }
+                 module "vpc" {
+                   source  = "terraform-aws-modules/vpc/aws"
+                   version = "2.66.0"
+
+                   name = "vpc-${local.name_suffix}" // instead of "vpc-${var.resource_tags["project"]}-${var.resource_tags["environment"]}"
+                   ...
+                 }
+                ```
+* datasources
+    * allow data to be fetched from outside of the terraform
+    * example
+        ```
+        data "aws_ami" "ubuntu" {
+            most_recent = true
+
+            filter {
+                name   = "name"
+                values = ["ubuntu/images/hvm-ssd/ubuntu-xenial-16.04-amd64-server-*"]
+            }
+
+            filter {
+                name   = "virtualization-type"
+                values = ["hvm"]
+            }
+
+            owners = ["099720109477"] # Canonical
+        }
+
+        resource "aws_instance" "web" {
+            ami           = "${data.aws_ami.ubuntu.id}"
+            instance_type = "t2.micro"
+
+            tags {
+                Name = "HelloUbuntu"
+            }
+        }
+        ```
 * provisioners VM
   * local-provisioner (execute something locally after spinning up a VM)
   * remote-provisioner (execute something remote on the VM)
