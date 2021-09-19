@@ -152,6 +152,10 @@
         * separating various blocks into different files is purely for the convenience of readers and has
         no effect on the module's behavior
 ### language
+* providers
+    * interact with cloud providers
+    * each provider adds a set of resource types and/or data sources that Terraform can manage
+    * example: AWS provider
 * resources
     * describe one or more infrastructure objects
     * example: ec2, vpc, database
@@ -253,19 +257,6 @@
         * local-provisioner (execute something locally after spinning up a VM)
         * remote-provisioner (execute something remote on the VM)
 
-
-* terraform templates
-  * data "template_file" "template1" { }
-  * resource "aws_instance" "web" { ... user_data = data.template_file.template1.rendered }
-
-* providers
-      * The AWS provider is responsible for
-        understanding API interactions, making authenticated requests, and exposing
-        resources to Terraform
-      * Even though we have declared the AWS provider, Terraform still needs to
-        download and install the binary from the Terraform Registry
-
-
 ## standard operations
 * terraform init
     * When terraform init is run, Terraform reads configuration files in the working directory to determine which plugins are necessary, searches for installed plugins in several locations, sometimes downloads additional plugins, decides which plugin versions to use, and writes a lock file to ensure Terraform will use the same plugin versions in this directory until terraform init runs again.
@@ -330,6 +321,7 @@
                       * This downtime is not negligi-
                         ble and can be anywhere from five minutes to an hour or more, depending on the
                         upstream API.
+## standard functions
 * count vs for_each
     * count
       * module xxx { count = ["instance1", "instance2", "instance3"] }
