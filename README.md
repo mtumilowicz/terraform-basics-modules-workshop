@@ -403,12 +403,6 @@ such blocks
   * for complete isolation, it's best to create multiple AWS accounts, and use one account
   for dev, another for prod, and a third one for billing
 
-
-## workshops
-1. aws --endpoint-url=http://localhost:4566 s3 ls
-1. aws --endpoint-url=http://localhost:4566 ec2 describe-instances
-1. http://127.0.0.1:8080/test.html
-
 ## secrets management
 * Terraform is an infrastructure provisioning
   technology and therefore handles a lot of secrets—more than most people realize.
@@ -502,3 +496,8 @@ such blocks
       * Secrets should be rotated periodically: at least once every 90 days, or in response to
         known security threats.
         * AWS Secrets Manager
+
+## workshops
+1. aws --endpoint-url=http://localhost:4566 s3 ls
+1. aws --endpoint-url=http://localhost:4566 ec2 describe-instances
+1. http://127.0.0.1:8080/test.html
