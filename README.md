@@ -20,6 +20,7 @@
     * https://www.terraform.io/docs
     * https://acloudguru.com/hands-on-labs/exploring-terraform-state-functionality
     * https://www.andreagrandi.it/2017/08/25/getting-latest-ubuntu-ami-with-terraform/
+    * https://learn.hashicorp.com/tutorials/terraform
 
 ## preface
 * goals of this workshops
@@ -258,69 +259,59 @@
         * remote-provisioner (execute something remote on the VM)
 
 ## standard operations
-* terraform init
-    * When terraform init is run, Terraform reads configuration files in the working directory to determine which plugins are necessary, searches for installed plugins in several locations, sometimes downloads additional plugins, decides which plugin versions to use, and writes a lock file to ensure Terraform will use the same plugin versions in this directory until terraform init runs again.
-    * After locating any installed plugins, terraform init compares them to the configuration's version constraints and chooses a version for each plugin as follows:
+* `terraform init`
+    * reads configuration files in the working directory to determine which plugins are necessary
+    * install plugins if needed
+        * if any versions that meets the constraint are installed -> chooses newest one
+        * otherwise -> downloads the newest acceptable from the Terraform Registry and saves it in a subdirectory
+        under `.terraform/providers/`
+        * otherwise -> initialization fails and the user must manually install an appropriate version
+    * writes a lock file
+* `terraform plan`
+    * informs you about what Terraform intends to do, letting you know about any syntax or dependency errors
+    * always run plan before deploying
+    * algorithm
+        1. refresh state
+        1. read configuration
+        1. read state
+        1. resource in state?
+            * YES -> `Read()`
+                1. has changes?
+                    * Yes -> is destroy plan?
+                        * Yes -> `Delete()`
+                        * No -> `Update()`
+                    * No -> `No-op`
+            * NO - `Create()`
+        1. output plan
+    * digression
+        * if an attribute is marked as an ForceNew - the resource is destroyed and recreated
+           ```
+           "ami": {
+           	Type:     schema.TypeString,
+           	Required: true,
+           	ForceNew: true,
+           }
+           ```
+        * most resources have regular in-place updates
+* `terraform apply`
+    * executes the actions proposed in a Terraform plan
+    * is shortcut for: `terraform plan -out file; terraform apply file; rm file`
+    * useful flag: `-auto-approve`
+* `terraform destroy`
+    * destroy all remote objects managed by configuration
+* `terraform show`
+    * human-readable output from a state
+* `terraform validate`
+    * checks that verify whether a configuration is syntactically valid and internally consistent, regardless
+    of any provided variables or existing state
+* `terraform fmt`
+    * rewrite Terraform configuration files to a canonical format and style
+* workspaces
+    * `terraform workspace new / delete workspaceName`
+    * `terraform workspace list`
+    * `terraform workspace select workspaceName`
+    * `terraform workspace show`
 
-      If any acceptable versions are installed, Terraform uses the newest installed version that meets the constraint (even if the Terraform Registry has a newer acceptable version).
-      If no acceptable versions are installed and the plugin is one of the providers distributed by HashiCorp, Terraform downloads the newest acceptable version from the Terraform Registry and saves it in a subdirectory under .terraform/providers/.
-      If no acceptable versions are installed and the plugin is not distributed in the Terraform Registry, initialization fails and the user must manually install an appropriate version.
-* terraform plan with export -> terraform apply with that plan
-* terraform apply = terraform plan -out file ; terraform apply file ; rm file
-    * terraform init
-    * terraform apply
-      * --auto-approve
-    * terraform plan
-    * terraform destroy
-    * terraform refresh
-* terraform plan
-    * You should always run
-    terraform plan before deploying
-    * terraform plan informs
-      you about what Terraform intends to do and acts as a linter, letting you know about
-      any syntax or dependency errors
-    * The three main stages of a terraform plan are as follows:
-      1. Read the configuration and state.
-         * main.tf
-         * Terraform reads your configuration and state files (if they exist).
-      1. Determine actions to take.
-         * terraform.tfstate
-         * Terraform performs a calculation to determine what needs to be done to achieve
-           the desired state. This can be one of Create() , Read() , Update() , Delete() , or No-op .
-      1. Output the plan.
-         * An execution plan ensures that actions occur in the right order to avoid dependency problems.
-         * This is more relevant when you have lots of resources.
-    * algo
-        1. Refresh state
-        2. Read configuration: main.tf
-        3. Read state: terraform.tfstate
-        4. Resource in state?
-            * YES -> Read()
-                1. Has changes?
-                    * Yes -> Is Destroy Plan?
-                        * Yes -> Delete()
-                        * No -> Update()
-                    * No -> No-op
-            * NO - Create()
-        5. Output plan
-    * As you can see, Terraform has noticed that we altered the content attribute and is
-      therefore proposing to destroy the old resource and create a new resource in its stead.
-      * This is done rather than updating the attribute in place because content is marked
-      as a force new attribute, which means if you change it, the whole resource is tainted.
-        * This is a classic example of immutable infrastructure, although not all attributes of
-          managed Terraform resources behave like this
-        * In fact, most resources have regular in-
-          place (i.e. mutable) updates
-                  * If one of the force-new attributes ( ami , instance_type , user_data ) was modified,
-                    then during a subsequent terraform apply , the existing resource would be
-                    destroyed before the new one was created
-                      * This is Terraform’s default behavior
-                      * The
-                        drawback is that there is downtime between when the old resource is destroyed and
-                        the replacement resource is provisioned
-                      * This downtime is not negligi-
-                        ble and can be anywhere from five minutes to an hour or more, depending on the
-                        upstream API.
 ## standard functions
 * count vs for_each
     * count
@@ -333,55 +324,21 @@
       * is a map where you could define your own key
       * locals { mymap = { Instance1 = ..., Instance2 = ... } }
       * module xxx { for_each = local.mymap instance_name = each.key }}
-## module
-* information flow
-  * powerful way to reuse code
-  * use external modules or write modules yourself
-  * https://registry.terraform.io/namespaces/terraform-aws-modules
-    * https://registry.terraform.io/modules/terraform-aws-modules/eks/aws/latest
-    * Modules are self-contained packages of code that allow you to create reusable compo-
-      nents by grouping related resources together
-    * Modules are useful tools for promoting software abstraction and code reuse.
-    * 4.2.1 Module syntax
-        * When I think about modules, the analogy of building with toy blocks always comes to
-          mind
-        * If resources and data sources are the individual building blocks of Terraform,
-          then modules are prefabricated groupings of many such blocks
-        * module "lb_sg" { }
-    * 4.2.2 What is the root module?
-        * Every workspace has a root module; it’s the directory where you run terraform apply
-        * Under the root module, you may have one or more child modules to help you organ-
-          ize and reuse configuration
-        * Modules can be sourced either locally (meaning they are
-          embedded within the root module) or remotely (meaning they are downloaded from
-          a remote location as part of terraform init )
-        * children-within-children module pattern is called nested modules
-        * HashiCorp strongly recommends that every module follow certain code conventions
-          known as the standard module structure
-          (www.terraform.io/docs/modules/index.html#standard-module-structure)
-          * three Terraform configuration files per module:
-             main.tf—the primary entry point
-             outputs.tf—declarations for all output values
-             variables.tf—declarations for all input variables
-          * versions.tf, providers.tf, and README.md are considered required files
-            in the root module
-* 4.3 Root module
-    * is the top-level module
-    * It’s where user-supplied input variables are
-      configured and where Terraform commands such as terraform init and terra-
-      form apply are run
-    * In our root module, there will be three input variables and two output values
-        * input variables are namespace , ssh_keypair , and region
-        * two output values are db_password and lb_dns_name
-    * The namespace variable is a project identifier
-        * project_name and environment
-* Remote modules can be fetched from the Terraform Registry with either terra-
-  form init or terraform get
-  * But not only the Terraform configuration is downloaded; everything in those modules is downloaded.
-Terraform always runs in the context of a single root module. A complete Terraform configuration consists of a root module and the tree of child modules (which includes the modules called by the root module, any modules called by those modules, etc.).
 
-In Terraform CLI, the root module is the working directory where Terraform is invoked. (You can use command line options to specify a root module outside the working directory, but in practice this is rare. )
-In Terraform Cloud and Terraform Enterprise, the root module for a workspace defaults to the top level of the configuration directory (supplied via version control repository or direct upload), but the workspace settings can specify a subdirectory to use instead.
+## module
+* powerful way to reuse code
+* are self-contained packages of code that allow you to create reusable components by grouping
+related resources together
+* if resources are the individual building blocks, modules are prefabricated groupings of many
+such blocks
+* https://registry.terraform.io/namespaces/terraform-aws-modules
+* root module - the directory where you run terraform apply
+* you may have one or more child modules
+* convention: three configuration files per module
+    * `main.tf` - entry point
+    * `outputs.tf` - all output variables
+    * `variables.tf` - all input variables
+    * additional: `versions.tf`, `providers.tf`, and `README.md` in the root module
 
 ## remote backend
 * create resources first, then uncomment the backend cofiguration, then init
