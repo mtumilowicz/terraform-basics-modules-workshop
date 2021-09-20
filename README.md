@@ -31,6 +31,7 @@
         * modules
         * remote backends and workspaces
         * aws with localstack
+        * secrets management
 * plan for the workshop:
     1. pt1_basics
     1. pt2_modules
@@ -78,6 +79,7 @@
     * example: security updates
 
 ## introduction
+
 ### terraform structure
 * terraform is separated into 3 separate parts
     * core
@@ -100,6 +102,7 @@
     * upstream
           * terraform does not create resources - it makes the cloud api to create it
               * api (aws api, google cloud api, github api, ...)
+
 ### project structure
 * `.terraform`
     * binary of the provider (initialized with during `terraform init`)
@@ -152,6 +155,7 @@
     as a single document
         * separating various blocks into different files is purely for the convenience of readers and has
         no effect on the module's behavior
+
 ### language
 * providers
     * interact with cloud providers
@@ -324,6 +328,15 @@
       * is a map where you could define your own key
       * locals { mymap = { Instance1 = ..., Instance2 = ... } }
       * module xxx { for_each = local.mymap instance_name = each.key }}
+      1. for_each vs count
+          * count
+              * In the past (before Terraform 0.12.6) the only way to create multiple instances of the same resource was to use a count parameter.
+              * Quite often there was some list defined somewhere and we’d create so many instances of a resource as many elements the list has
+              * Now, count is sensible for any changes in list order, this means that if for some reason order of the list is changed, terraform will force replacement of all resources of which the index in the list has changed
+              * In example below I added one more element to the list (as first element, at list index 0) and this is what terraform is trying to do as a result:
+              * Not only my new resource is getting added, but ALL the other resources are being recreated, this is a DISASTER
+          * for_each
+              * It takes a map / set as input and uses the key of a map as an index of instances of created resource.
 
 ## module
 * powerful way to reuse code
@@ -341,8 +354,6 @@ such blocks
     * additional: `versions.tf`, `providers.tf`, and `README.md` in the root module
 
 ## remote backend
-* create resources first, then uncomment the backend cofiguration, then init
-    * workspaces should be discussed here
 * When using a non-local backend, Terraform will not persist the state anywhere on disk except in the case of a non-recoverable error where writing the state to the backend failed. This behavior is a major benefit for backends: if sensitive values are in your state, using a remote backend allows you to use Terraform without that state ever being persisted to disk.
 * In the case of an error persisting the state to the backend, Terraform will write the state locally. This is to prevent data loss.
 * Backends are responsible for supporting state locking if possible.
@@ -393,69 +404,10 @@ such blocks
   for dev, another for prod, and a third one for billing
 
 
-## aws
-aws --endpoint-url=http://localhost:4566 s3 ls
-aws --endpoint-url=http://localhost:4566 ec2 describe-instances
-
-
-1. if you run any terraform command without init before:
-    terraform validate
-    ╷
-    │ Error: Could not load plugin
-    │
-    │
-    │ Plugin reinitialization required. Please run "terraform init".
-1. https://www.terraform.io/docs/language/dependency-lock.html
-    A Terraform configuration may refer to two different kinds of external dependency that come from outside of its own codebase:
-
-
-
-    Version constraints within the configuration itself determine which versions of dependencies are potentially
-    compatible, but after selecting a specific version of each dependency Terraform remembers the decisions
-    it made in a dependency lock file so that it can (by default) make the same decisions again in future.
-
-    At present, the dependency lock file tracks only provider dependencies. Terraform does not remember version
-    selections for remote modules, and so Terraform will always select the newest available module version
-    that meets the specified version constraints. You can use an exact version constraint to ensure that
-    Terraform will always select the same module version.
-
-    You should include this file in your version control repository so that you can discuss potential changes
-    to your external dependencies via code review, just as you would discuss potential changes to your
-    configuration itself.
-
-    When terraform init is working on installing all of the providers needed for a configuration, Terraform considers
-    both the version constraints in the configuration and the version selections recorded in the lock file.
-
-    If a particular provider has no existing recorded selection, Terraform will select the newest available version
-    that matches the given version constraint, and then update the lock file to include that selection.
-
-    If a particular provider already has a selection recorded in the lock file, Terraform will always re-select
-    that version for installation, even if a newer version has become available.
-
-    Terraform will also verify that each package it installs matches at least one of the checksums it previously
-    recorded in the lock file, if any, returning an error if none of the checksums match
-
-    This separates the idea of which provider versions a module/configuration is compatible with (the version
-    constraints) from which versions a configuration is currently using (the lock file).
-
-    It will check the downloaded provider packages against the checksums it saw the first time you saw the
-    provider, raising an error if any package does not match.
-        This therefore implements a “trust on first use” model where you can, if you wish, perform audits or
-        other checks on new provider versions you intend to use and then use the lock file to remember the
-        checksums of the packages you audited, so you’ll know if the upstream provider package is modified
-        in some way after you reviewed it.
-1. .terraform directory is in turn just a local cache of remote the items the lock file describes.
+## workshops
+1. aws --endpoint-url=http://localhost:4566 s3 ls
+1. aws --endpoint-url=http://localhost:4566 ec2 describe-instances
 1. http://127.0.0.1:8080/test.html
-1. for_each vs count
-    * count
-        * In the past (before Terraform 0.12.6) the only way to create multiple instances of the same resource was to use a count parameter.
-        * Quite often there was some list defined somewhere and we’d create so many instances of a resource as many elements the list has
-        * Now, count is sensible for any changes in list order, this means that if for some reason order of the list is changed, terraform will force replacement of all resources of which the index in the list has changed
-        * In example below I added one more element to the list (as first element, at list index 0) and this is what terraform is trying to do as a result:
-        * Not only my new resource is getting added, but ALL the other resources are being recreated, this is a DISASTER
-    * for_each
-        * It takes a map / set as input and uses the key of a map as an index of instances of created resource.
-1. show why validation is important (internal_port - if you change from 8080 it will not work)
 
 ## secrets management
 * Terraform is an infrastructure provisioning
