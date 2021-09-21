@@ -21,6 +21,8 @@
     * https://acloudguru.com/hands-on-labs/exploring-terraform-state-functionality
     * https://www.andreagrandi.it/2017/08/25/getting-latest-ubuntu-ami-with-terraform/
     * https://learn.hashicorp.com/tutorials/terraform
+    * https://pilotcoresystems.com/insights/what-are-terraform-workspaces
+    * https://medium.com/@diogok/terraform-workspaces-and-locals-for-environment-separation-a5b88dd516f5
 
 ## preface
 * goals of this workshops
@@ -354,54 +356,31 @@ such blocks
     * additional: `versions.tf`, `providers.tf`, and `README.md` in the root module
 
 ## remote backend
-* When using a non-local backend, Terraform will not persist the state anywhere on disk except in the case of a non-recoverable error where writing the state to the backend failed. This behavior is a major benefit for backends: if sensitive values are in your state, using a remote backend allows you to use Terraform without that state ever being persisted to disk.
-* In the case of an error persisting the state to the backend, Terraform will write the state locally. This is to prevent data loss.
-* Backends are responsible for supporting state locking if possible.
-    * Terraform will lock your state for all operations that could write state.
-    * This prevents others from acquiring the lock and potentially corrupting your state.
-* Terraform has a force-unlock command to manually unlock the state if unlocking failed.
-    * If you unlock the state when someone else is holding the lock it could cause multiple writers.
-    * To protect you, the force-unlock command requires a unique lock ID. Terraform will output this lock ID if unlocking fails
-  * can keep sensitive information off disk
-  * s3 supports encryption at rest, authentication & authorization
-  * dynamodb locking
-    * sometimes when terraform crashes or users internet connection breaks during terraform apply
-    the lock will stay
-      * terraform force-unlock <id>
-      * this command will not touch the state, it'll just remove the lock file, so it's safe
-      as long as nobody is really still doing an apply
-  * you need to be aware that secrets can be stored in your state file
-    * for example, when you create a database, the initial database password will be in the state file
-    * if you have a remote state, then it will not be stored on disk locally (it will only be kept in memory when
-    you run terraform apply)
-      * increases security
-  * make sure only terraform administrators have access to s3 bucket where the state resides
-* In Terraform, race conditions
-  occur when two people are trying to access the same state file at the same time, such as
-  when one is performing a terraform apply and another is performing terraform
-  destroy
-    * If this happens, your state file can become out of sync with what’s actually
-      deployed, resulting in what is known as a corrupted state
-    * Using a remote backend end
-      with a state lock prevents this from happening
- Store sensitive information securely
-    * In the unlikely event that two people try to deploy against the same remote backend
-      at the same time, only one user will be able to acquire the state lock—the other will
-      fail.
+* in short: where state is stored
+    * example: local or S3
+* when using a non-local backend, Terraform will not persist the state anywhere on disk
+    * major benefit: no sensitive values persisted to disk
+    * remark: when writing state to the backend fails - Terraform will write the state locally
+* major benefit: keep sensitive information off disk
+    * for example: when you create a database, the initial database password will be in the state file
+* increases security
+    * for example: s3 supports encryption at rest, authentication & authorization
 
 ## workspaces
-  * when you create a new workspace, you start with empty state
-  * cannot be used for a "fully isolated" setup that you'd need when you want
-  to run terraform for multiple environments (staging / testing / prod)
-  * even though a workspace gives you an empty state you're still using the same state
-  the same backend configuration (workspaces are the technically equivalent of renaming your state file)
-  * in real world scenarios you typically use re-usable modules and really split out the state over
-  multiple backends (for example your staging backend will be on s3 on your staging aws account and your
-  prod backend will be in an s3 bucket on the prod aws account, following multi-account strategy)
-* project structure
-  * you want to separate your development and production environments completely
-  * for complete isolation, it's best to create multiple AWS accounts, and use one account
-  for dev, another for prod, and a third one for billing
+* allows you to create different and independent states on the same configuration
+* are technically equivalent to renaming your state file
+    * workspaces each have state files (provide isolation between them)
+    * when working in one workspace, changes will not affect resources in another workspace
+* initially the backend has only one workspace: "default"
+* used for testing
+    * for example, a new temporary workspace to freely experiment with changes without affecting the default workspace
+* used for multi-region deployment
+    *
+* workspaces alone are not a suitable tool for system decomposition
+    * cannot be used for a "fully isolated" setup for multiple environments (staging / testing / prod)
+    * each subsystem should have its own separate configuration and backend (complete separation)
+        * for complete isolation, it's best to create multiple AWS accounts, and use one account for dev, another
+        for prod, and a third one for billing
 
 ## secrets management
 * Terraform is an infrastructure provisioning
