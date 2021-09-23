@@ -11,4 +11,5 @@
         * windows: https://github.com/hashicorp/terraform-provider-docker/issues/180
     1. define image: "docker_image", name = "danjellz/http-server"
     1. define container: "docker_container", remember to set internal / external ports
+        * internal port should be 8080 according to "danjellz/http-server" documentation
 1. verify: http://127.0.0.1:8080/test.html
