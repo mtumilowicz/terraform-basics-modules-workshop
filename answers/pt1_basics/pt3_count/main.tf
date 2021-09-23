@@ -17,7 +17,7 @@ resource "docker_image" "http_server_image" {
 }
 
 resource "docker_container" "http_server_container" {
-  count = length(var.external_port)
+  count = local.container_count
   image = docker_image.http_server_image.latest
   name  = "http_server-running${count.index}"
 
