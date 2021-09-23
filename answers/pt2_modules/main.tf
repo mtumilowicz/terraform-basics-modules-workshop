@@ -1,18 +1,17 @@
 module "image" {
-  source   = "./image"
-  for_each = local.deployment
-  image_in = each.value.image
+  source      = "./image"
+  for_each    = local.deployment
+  image_input = each.value.image
 }
 
-
 module "container" {
-  source      = "./container"
-  count_in    = each.value.container_count
-  for_each    = local.deployment
-  name_in     = each.key
-  image_in    = module.image[each.key].image_out
-  int_port_in = each.value.int
-  ext_port_in = each.value.ext
+  source              = "./container"
+  count_input         = each.value.http_servers
+  for_each            = local.deployment
+  name_input          = each.key
+  image_input         = module.image[each.key].image_output
+  internal_port_input = each.value.int
+  external_port_input = each.value.ext
 }
 
 

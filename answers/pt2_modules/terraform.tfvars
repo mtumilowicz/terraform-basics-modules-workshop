@@ -1,3 +1,3 @@
-ext_port = {
-  nodered = [8080, 8081]
+external_ports = {
+  http_server = [8080, 8081]
 }

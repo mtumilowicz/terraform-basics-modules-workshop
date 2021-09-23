@@ -1,10 +1,10 @@
 locals {
   deployment = {
-    nodered = {
-      container_count = length(var.ext_port["nodered"])
-      image           = var.image["nodered"]
-      int             = 8080
-      ext             = var.ext_port["nodered"]
+    http_server = {
+      http_servers = length(var.external_ports[var.http_server])
+      image        = var.image[var.http_server]
+      int          = 8080
+      ext          = var.external_ports[var.http_server]
     }
   }
 }

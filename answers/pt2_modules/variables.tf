@@ -2,32 +2,31 @@ variable "image" {
   type        = map(any)
   description = "image for container"
   default = {
-    nodered = "danjellz/http-server"
+    http_server = "danjellz/http-server"
   }
 }
 
-
-variable "ext_port" {
-  type = map(any)
-
-  # validation {
-  #   condition     = max(var.ext_port["dev"]...) <= 65535 && min(var.ext_port["dev"]...) >= 1980
-  #   error_message = "The external port must be in the valid port range 0 - 65535."
-  # }
-
-  # validation {
-  #   condition     = max(var.ext_port["prod"]...) < 1980 && min(var.ext_port["prod"]...) >= 1880
-  #   error_message = "The external port must be in the valid port range 0 - 65535."
-  # }
+variable "http_server" {
+  default = "http_server"
 }
 
-variable "int_port" {
+
+variable "external_ports" {
+  type = map(any)
+
+  validation {
+    condition     = max(var.external_ports["http_server"]...) <= 65535 && min(var.external_ports["http_server"]...) >= 1980
+    error_message = "The external port must be in the valid port range 1980 - 65535."
+  }
+}
+
+variable "internal_port" {
   type    = number
   default = 8080
 
   validation {
-    condition     = var.int_port == 8080
-    error_message = "The internal port must be 1880."
+    condition     = var.internal_port == 8080
+    error_message = "The internal port must be 8080."
   }
 }
 

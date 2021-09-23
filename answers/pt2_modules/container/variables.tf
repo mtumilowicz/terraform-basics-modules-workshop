@@ -1,5 +1,5 @@
-variable "ext_port_in" {}
-variable "int_port_in" {}
-variable "image_in" {}
-variable "name_in" {}
-variable "count_in" {}
+variable "external_port_input" {}
+variable "internal_port_input" {}
+variable "image_input" {}
+variable "name_input" {}
+variable "count_input" {}
