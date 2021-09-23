@@ -1,4 +1,4 @@
-1. goal: run two containers from the image: "danjellz/http-server" using count
+1. goal: run two containers from the image: "danjellz/http-server" using for_each
 1. hints
     1. use pt3_count as a base
     1. define var http_server_config that is a map{name: String, ports: map}
