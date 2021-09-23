@@ -7,6 +7,7 @@
     1. set external_ports in `terraform.tfvars` for [8080,8081]
     1. define outputs for container-names and ip-addresses using splat expression [*]
     1. use defined structures in refactoring container definition
+        * use count
         * you can define container_count as a local variable: length(var.external_port)
 1. verify: http://127.0.0.1:8080/test.html
 1. verify: http://127.0.0.1:8081/test.html
