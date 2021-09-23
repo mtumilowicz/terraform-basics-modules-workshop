@@ -343,6 +343,7 @@
           * for_each
               * It takes a map / set as input and uses the key of a map as an index of instances of created resource.
 * splat expression
+* lookup
 
 ## module
 * powerful way to reuse code
