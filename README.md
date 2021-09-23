@@ -23,6 +23,7 @@
     * https://learn.hashicorp.com/tutorials/terraform
     * https://pilotcoresystems.com/insights/what-are-terraform-workspaces
     * https://medium.com/@diogok/terraform-workspaces-and-locals-for-environment-separation-a5b88dd516f5
+    * https://shanidgafur.github.io/blog/terraform-workspaces-for-multi-region-deployment
 
 ## preface
 * goals of this workshops
@@ -369,13 +370,17 @@ such blocks
 ## workspaces
 * allows you to create different and independent states on the same configuration
 * are technically equivalent to renaming your state file
-    * workspaces each have state files (provide isolation between them)
+    * partition the Terraform state so that many instances to the same resource can exists within it
     * when working in one workspace, changes will not affect resources in another workspace
 * initially the backend has only one workspace: "default"
 * used for testing
     * for example, a new temporary workspace to freely experiment with changes without affecting the default workspace
 * used for multi-region deployment
-    *
+    ```
+    provider "aws" {
+     region = "${terraform.workspace}"
+    }
+    ```
 * workspaces alone are not a suitable tool for system decomposition
     * cannot be used for a "fully isolated" setup for multiple environments (staging / testing / prod)
     * each subsystem should have its own separate configuration and backend (complete separation)
@@ -383,100 +388,80 @@ such blocks
         for prod, and a third one for billing
 
 ## secrets management
-* Terraform is an infrastructure provisioning
-  technology and therefore handles a lot of secrets—more than most people realize.
-  Secrets like database passwords, personal identification information (PII), and
-  encryption keys may all be consumed and managed by Terraform.
-* Worse, many of
-  these secrets appear as plaintext, either in Terraform state or in log files.
-  * Sensitive information will inevitably find its way into Terraform state pretty much no
-    matter what you do.
-  * Terraform does not treat attributes containing sensitive data any differ-
-    ently than it treats non-sensitive attributes.
-    * Therefore, any and all sensitive data is put
-      in the state file, which is stored as plaintext JSON.
-  * Because you can’t prevent secrets
-    from making their way into Terraform state, it’s imperative that you treat the state file
-    as sensitive and secure it accordingly.
-    * Only three configuration blocks can store stateful information (sensitive or otherwise)
-    in Terraform: resources, data sources, and output values.
-    * Other kinds of configuration blocks (pro-
-      viders, input variables, local values, modules, etc.) do not store stateful data.
-      * Any of
-        these other blocks may leak sensitive information in other ways, but at least you do not
-        need to worry about them saving sensitive information to the state file.
+* Terraform handles a lot of secrets—more than most people realize
+    * sensitive information will inevitably find its way into Terraform no matter what you do
+        * you should treat the state file as sensitive and secure it accordingly
+            * gate who has access to it
+            * encryption at rest
+            * encrypting data in transit (SSL/TLS)
+            * most of it enabled by default for S3
+    * example: database passwords, personal identification information (PII), encryption keys...
+* all sensitive data is put in the state file (stored as plaintext JSON)
+* only three configuration blocks can store stateful information (sensitive or otherwise)
+    * resources
+    * data sources
+    * and output values
+    * other kinds of configuration blocks do not store stateful data
+        * but may leak sensitive information in other ways
+        * at least: not saving sensitive information to the state file
 * example
     * https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/db_instance
-        * two secrets: var.username and var.password .
-          * Since both of these
-            attributes are defined as required , if you want Terraform to provision an RDS data-
-            base, you must be willing to accept that your master username and password secret val-
-            ues exist in Terraform state
-        * username and password appear
-                  as plaintext in Terraform state
-* you need to treat the state file as secret and gate who has access to it
-    * Encryption at rest is the act of translating data into a format that cannot be decrypted
-      except by authorized users
-    * Even if a malicious user were to gain
-      physical access to the machines storing encrypted data, the data would be useless to
-      them.
-    * Encrypting data in transit is just as important as encrypting data at rest.
-      * The standard
-        way to do this is to ensure that data is exclusively transmitted over SSL/TLS, which
-        is enabled by default for most backends including S3, Terraform Cloud, and Terraform
-        Enterprise
+    ```
+    resource "aws_db_instance" "default" {
+      allocated_storage    = 10
+      engine               = "mysql"
+      engine_version       = "5.7"
+      instance_class       = "db.t3.micro"
+      name                 = "mydb"
+      username             = "foo" // required
+      password             = "foobarbaz" // required
+      parameter_group_name = "default.mysql5.7"
+      skip_final_snapshot  = true
+    }
+    ```
 * static secrets
-      * Static secrets are sensitive values that do not change, or at least do not change often.
-      * Most secrets can be classified as static secrets.
-      * Things like username and passwords,
-        long-lived oAuth tokens, and config files containing credentials are all examples of
-        static secrets.
-        * There are two major ways to pass static secrets into Terraform: as environment variables
-          and as Terraform variables.
-            * I recommend passing secrets as environment variables
-              whenever possible because it is far safer than the alternative.
-    * Environment variables do
-      not show up in the state or plan files, and it’s harder for malicious users to access your
-      sensitive values as compared to Terraform variables.
-    * example
-            * When configuring a Terraform provider, you definitely do not want to pass sensitive
-              information as regular Terraform variables:
-              provider "aws" {
-                region = "us-west-2"
-                access_key = var.access_key // A very bad idea!
-                secret_key = var.secret_key // A very bad idea!
-              }
-    * The recommended approach is therefore to configure providers using environ-
-      ment variables:
-      provider "aws" {
-        region = "us-west-2"
-      }
-        * If you wish to deploy an RDS database, you are stuck setting username and password
-          as Terraform variables, since there is no option for using environment variables
-    * After running Terraform in automation, you should seek to isolate sensitive Terra-
-      form variables from non-sensitive Terraform variables.
-          * Terraform does not automatically
-            load variable-definition files with any name other than terraform.tfvars , but you
-            can specify other files using the -var-file flag.
-            * For instance, if you have non-sensi-
-              tive data stored in production.tfvars (possibly checked into Git) and sensitive
-              data stored in secrets.tfvars (definitely not checked into Git), the following com-
-              mand will do the trick:
-              * terraform apply \
-                -var-file="secrets.tfvars" \
-                -var-file="production.tfvars"
-        * Sensitive variables can be defined by setting the sensitive argument to true:
-        * Variables defined as sensitive appear in Terraform state but are redacted from CLI
-          output.
-            * Defining a variable as sensitive prevents users from accidently exposing secrets but
-              does not stop motivated individuals.
-              * Consider instead the following code, which redirects var.password to local
-                _file
-      * Secrets should be rotated periodically: at least once every 90 days, or in response to
-        known security threats.
-        * AWS Secrets Manager
+    * are sensitive values that do not change (at least not often)
+    * in general: most secrets
+    * two major ways to pass static secrets into Terraform
+        * as environment variables
+            * should be used whenever possible
+            * example (a very bad idea)
+                ```
+                provider "aws" {
+                  region = "us-west-2"
+                  access_key = var.access_key // required, but can be sourced from the AWS_ACCESS_KEY_ID environment variable
+                  secret_key = var.secret_key // required, but can be sourced from the AWS_SECRET_ACCESS_KEY environment variable
+                }
+                ```
+                * solution: use aws-vault
+            * digression: RDS database you have to set username and password as Terraform variables - there is no
+            option for environment variables
+        * as Terraform variables
+    * sensitive variables can be defined by setting the sensitive argument to true
+        * example
+            ```
+            variable "db_username" {
+              description = "Database administrator username"
+              type        = string
+              sensitive   = true
+            }
+            ```
+        * appear in Terraform state but are redacted from CLI output
+        * prevents users from accidentally exposing secrets but does not stop motivated individuals
+            * you could just redirects var.db_username to local _file
+    * terraform in automation: isolate sensitive variables from non-sensitive variables
+        * reminder: terraform does not automatically load variable with any name other filename
+        than `terraform.tfvars`
+        * example
+            * non-sensi-tive data stored in: `production.tfvars` (and commited to git)
+            * sensitive data stored in `secrets.tfvars` (not commited to git)
+            * command terraform apply -var-file="secrets.tfvars" -var-file="production.tfvars"
 
 ## workshops
 1. aws --endpoint-url=http://localhost:4566 s3 ls
 1. aws --endpoint-url=http://localhost:4566 ec2 describe-instances
 1. http://127.0.0.1:8080/test.html
+1. terraform workspace new us-east-1
+1. terraform workspace new us-west-2
+1. terraform workspace select us-east-1
+1. terraform workspace select us-west-2
