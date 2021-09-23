@@ -35,11 +35,13 @@
         * remote backends and workspaces
         * aws with localstack
         * secrets management
-* plan for the workshop:
-    1. pt1_basics
-    1. pt2_modules
-    1. pt3_remotebackend
-    1. pt4_aws
+* plan for the workshop
+    * follow the hints from appropriate directories:
+        1. pt1_basics
+        1. pt2_modules
+        1. pt3_remotebackend
+        1. pt4_workspaces
+        1. pt5_aws
 
 ## infrastructure as a code
 * is the process of managing and provisioning infrastructure through definition files
