@@ -1,6 +1,7 @@
 1. goal: run two containers from the image: "danjellz/http-server" using count
 1. hints
     1. use pt2_multiple as a base
+    1. define `providers.tf` and move there providers definition
     1. define `variables.tf` for external_ports and internal_port (with validations)
         * internal: should be 8080
         * external: [0, 65535]

@@ -4,6 +4,6 @@ output "container-name" {
 }
 
 output "ip-address" {
-  value       = [for i in docker_container.http_server_container[*] : join(":", [i.ip_address], i.ports[*]["external"])]
+  value       = [for container in docker_container.http_server_container[*] : join(":", [container.ip_address], container.ports[*]["external"])]
   description = "The IP address and external port of the container"
 }
