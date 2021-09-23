@@ -342,6 +342,7 @@
               * Not only my new resource is getting added, but ALL the other resources are being recreated, this is a DISASTER
           * for_each
               * It takes a map / set as input and uses the key of a map as an index of instances of created resource.
+* splat expression
 
 ## module
 * powerful way to reuse code
