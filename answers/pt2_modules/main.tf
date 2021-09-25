@@ -10,8 +10,8 @@ module "container" {
   for_each                         = local.containers
   container_prefix_name_input      = each.key
   image_name_input                 = module.image[each.key].image_name_output
-  internal_port_input              = each.value.int
-  external_port_input              = each.value.ext
+  internal_port_input              = each.value.internal_port
+  external_port_input              = each.value.external_port
 }
 
 
