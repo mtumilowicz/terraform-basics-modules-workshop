@@ -1,4 +1,4 @@
-variable "image" {
+variable "images" {
   type        = map(any)
   description = "image for container"
 }
