@@ -1,5 +1,7 @@
 resource "aws_s3_bucket" "terraform_state" {
   bucket = "terraform-state"
+
+  lifecycle { prevent_destroy = true }
 }
 
 resource "aws_dynamodb_table" "terraform_state_lock" {
