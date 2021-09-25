@@ -321,29 +321,52 @@
     * `terraform workspace select workspaceName`
     * `terraform workspace show`
 
-## standard functions
-* count vs for_each
-    * count
-      * module xxx { count = ["instance1", "instance2", "instance3"] }
-        * module.xxx_count[0].resource
-        * module.xxx_count[1].resource
-        * module.xxx_count[2].resource
-        * indexed by index in the list; if you remove instance2, resource3 will be recreated
-    * for each
-      * is a map where you could define your own key
-      * locals { mymap = { Instance1 = ..., Instance2 = ... } }
-      * module xxx { for_each = local.mymap instance_name = each.key }}
-      1. for_each vs count
-          * count
-              * In the past (before Terraform 0.12.6) the only way to create multiple instances of the same resource was to use a count parameter.
-              * Quite often there was some list defined somewhere and we’d create so many instances of a resource as many elements the list has
-              * Now, count is sensible for any changes in list order, this means that if for some reason order of the list is changed, terraform will force replacement of all resources of which the index in the list has changed
-              * In example below I added one more element to the list (as first element, at list index 0) and this is what terraform is trying to do as a result:
-              * Not only my new resource is getting added, but ALL the other resources are being recreated, this is a DISASTER
-          * for_each
-              * It takes a map / set as input and uses the key of a map as an index of instances of created resource.
+## standard functions and meta-arguments
+* https://www.terraform.io/docs/language/functions/index.html
+    * `join(separator, list)`
+        * `join(", ", ["foo", "bar", "baz"])` -> `foo, bar, baz`
+    * `alltrue(list)`
+        * `alltrue(["true", true])` -> `true`
+    * `length(any)`
+        * `length("hello")` -> `1`
+        * `length({"a" = "b"})` -> `1`
+        * `length(["a", "b"])` -> `2`
+    * `lookup(map, key, default)`
+        * `lookup({a="ay", b="bee"}, "c", "what?")` -> `what?`
+    * `templatefile(path, vars)`
+        * `templatefile("${path.module}/backends.tpl", { port = 8080, ip_addrs = ["10.0.0.1", "10.0.0.2"] })`
+* meta-arguments
+    ```
+    module/resource "example" {
+        meta-argument {
+            ...
+        }
+    }
+    ```
+    * providers
+        * specifies which provider configurations will be available inside the module
+    * for_each and count
+        * sometimes you want to manage several similar objects (like a fixed pool of compute instances) without
+        writing a separate block for each one
+        * count
+            * accepts a whole number, and creates that many instances of the resource or module
+            * `count.index` - (starting with 0) corresponding to this instance
+            * count is sensible for any changes in list order
+                * if order of the list is changed, terraform will force replacement of all resources of which the index
+                in the list has changed
+        * for_each
+            * accepts a map or a set of strings, and creates an instance for each item in that map or set
+            * `each.key`, `each.value`
+    * depends_on
+        * handle hidden resource or module dependencies
+        * used when relies on some other resource's but doesn't access any of that resource's data
+        * should be used only as a last resort
+        * example
+            * software running in this EC2 instance needs access to the S3 API in order to boot properly you need to
+            define `aws_instance depends_on aws_iam_role_policy`
 * splat expression
-* lookup
+    * more concise way to express a common operation performed with a `for`
+    * `[for o in var.list : o.id]` -> `var.list[*].id`
 
 ## module
 * powerful way to reuse code
@@ -457,15 +480,6 @@ such blocks
         * reminder: terraform does not automatically load variable with any name other filename
         than `terraform.tfvars`
         * example
-            * non-sensi-tive data stored in: `production.tfvars` (and commited to git)
+            * non-sensitive data stored in: `production.tfvars` (and commited to git)
             * sensitive data stored in `secrets.tfvars` (not commited to git)
             * command terraform apply -var-file="secrets.tfvars" -var-file="production.tfvars"
-
-## workshops
-1. aws --endpoint-url=http://localhost:4566 s3 ls
-1. aws --endpoint-url=http://localhost:4566 ec2 describe-instances
-1. http://127.0.0.1:8080/test.html
-1. terraform workspace new us-east-1
-1. terraform workspace new us-west-2
-1. terraform workspace select us-east-1
-1. terraform workspace select us-west-2
