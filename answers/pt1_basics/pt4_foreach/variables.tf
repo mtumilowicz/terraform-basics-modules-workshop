@@ -1,9 +1,9 @@
 variable "http_server_config" {
   type = map(object(
-  {
-    name = string
-    ports = map(any)
-  })
+    {
+      name  = string
+      ports = map(any)
+    })
   )
 }
 
