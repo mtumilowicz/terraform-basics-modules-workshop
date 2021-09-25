@@ -1,6 +1,6 @@
 variable "images" {
-  type        = map(any)
-  description = "image for container"
+  type        = map(string)
+  description = "map containerId -> imageName"
 }
 
 variable "http_server" {
