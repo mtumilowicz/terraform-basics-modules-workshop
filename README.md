@@ -159,43 +159,24 @@
 ### language
 * providers
     * interact with cloud providers
-    * each provider adds a set of resource types and/or data sources that Terraform can manage
-    * example: AWS provider
+    * each provider defines a set of resources
+    * example: AWS provider - S3, EC2
 * resources
-    * describe one or more infrastructure objects
+    * describe infrastructure objects
     * example: ec2, vpc, database
     * have inputs and outputs
         * inputs are called arguments
         * outputs are called attributes
         * arguments are passed through the resource and are also available as attributes
-        * there are also computed attributes that are only available after the creation
+        * computed attributes = available after the creation
             * example: AWS `arn:partition:service:region:account-id:resource-type:resource-id`
     * implement the resource schema interface
-        * schema mandates, above all, definitions of CRUD functions hooks
+        * definitions of CRUD functions hooks
         * Terraform invokes these hooks when certain conditions are met
             * example
                 * `Create()` is called during resource creation
                 * `Read()` during plan generation
 * variables
-    * variables should be validated
-        * example - usualy internal ports are fixed
-            ```
-            variable "internal_port" {
-              type    = number
-              default = 8080
-
-              validation {
-                condition     = var.internal_port == 8080
-                error_message = "The internal port must be 8080."
-              }
-            }
-            ```
-    * declare variables in `.tfvars`
-        * terraform also automatically loads variable definitions if:
-            * named exactly `terraform.tfvars`
-            * names ending in `.auto.tfvars`
-        * otherwise append `--var-file prod.tfvars` to the terraform command
-            * example: `terraform apply --var-file prod.tfvars`
     * three types
         * input
         * output
@@ -217,8 +198,26 @@
                    ...
                  }
                 ```
+    * variables should be validated
+        * example - usually internal ports are fixed
+            ```
+            variable "internal_port" {
+              type    = number
+              default = 8080
+
+              validation {
+                condition     = var.internal_port == 8080
+                error_message = "The internal port must be 8080."
+              }
+            }
+            ```
+    * declare variables in `.tfvars`
+        * terraform automatically loads variable definitions if
+            * named exactly `terraform.tfvars`
+            * names ending in `.auto.tfvars`
+        * otherwise `terraform apply --var-file prod.tfvars`
 * datasources
-    * allow data to be fetched from outside of the terraform
+    * fetch data from outside of the terraform
     * example
         ```
         data "aws_ami" "ubuntu" {
@@ -247,33 +246,32 @@
         }
         ```
 * provisioners VM
+    * are an anti-pattern, and they may even be deprecated in a newer version of Terraform
+        * example
+            * sometimes resources are marked "created" and it takes a few more seconds before they are truly ready
+                * don't: insert delays with the local-exec provisioner
+                * do: `resource "time_sleep"` and `depends_on = [time_sleep.wait_30_seconds]`
     * resource provisioners are essentially backdoors to the Terraform runtime
     * provisioners can execute arbitrary code on either a local or remote machine as part of resource
     creation or destruction
     * used for various tasks, such as bootstrapping, copying files
     * call external scripts, there is an implicit dependency on the OS interpreter
     * should be used only as a method of last resort
-    * are an anti-pattern, and they may even be deprecated in a newer version of Terraform
-        * example
-            * sometimes resources are marked "created" and it takes a few more seconds before they are truly ready
-                * don't: insert delays with the local-exec provisioner
-                * do: `resource "time_sleep"` and `depends_on = [time_sleep.wait_30_seconds]`
     * types
         * local-provisioner (execute something locally after spinning up a VM)
         * remote-provisioner (execute something remote on the VM)
 
 ## standard operations
 * `terraform init`
-    * reads configuration files in the working directory to determine which plugins are necessary
+    * determines which plugins are necessary (based on configuration files)
     * install plugins if needed
+        * providers resides in `.terraform/providers/`
         * if any versions that meets the constraint are installed -> chooses newest one
-        * otherwise -> downloads the newest acceptable from the Terraform Registry and saves it in a subdirectory
-        under `.terraform/providers/`
-        * otherwise -> initialization fails and the user must manually install an appropriate version
+        * otherwise -> downloads and installs the newest acceptable from the Terraform Registry
+        * otherwise -> initialization fails
     * writes a lock file
 * `terraform plan`
-    * informs you about what Terraform intends to do, letting you know about any syntax or dependency errors
-    * always run plan before deploying
+    * what Terraform intends to do
     * algorithm
         1. refresh state
         1. read configuration
@@ -287,6 +285,7 @@
                     * No -> `No-op`
             * NO - `Create()`
         1. output plan
+    * always run plan before deploying
     * digression
         * if an attribute is marked as an ForceNew - the resource is destroyed and recreated
            ```
@@ -306,10 +305,9 @@
 * `terraform show`
     * human-readable output from a state
 * `terraform validate`
-    * checks that verify whether a configuration is syntactically valid and internally consistent, regardless
-    of any provided variables or existing state
+    * checks if configuration is syntactically valid regardless of any provided variables or existing state
 * `terraform fmt`
-    * rewrite Terraform configuration files to a canonical format and style
+    * rewrite files to a canonical format and style
 * workspaces
     * `terraform workspace new / delete workspaceName`
     * `terraform workspace list`
@@ -343,26 +341,25 @@
     ```
     * providers
         * specifies which provider configurations will be available inside the module
-    * for_each and count
+    * `for_each` and `count`
         * sometimes you want to manage several similar objects (like a fixed pool of compute instances) without
         writing a separate block for each one
         * count
-            * accepts a whole number, and creates that many instances of the resource or module
-            * `count.index` - (starting with 0) corresponding to this instance
-            * count is sensible for any changes in list order
-                * if order of the list is changed, terraform will force replacement of all resources of which the index
-                in the list has changed
-        * for_each
-            * accepts a map or a set of strings, and creates an instance for each item in that map or set
+            * accepts a number and creates that many instances
+            * `count.index` - (starting with 0) corresponding to current instance
+            * is sensible for any changes in list order
+                * terraform will force replacement of all resources of which the index in the list has changed
+        * `for_each`
+            * accepts a map or a set of strings, and creates an instance for each item
             * `each.key`, `each.value`
-    * depends_on
+    * `depends_on`
         * handle hidden resource or module dependencies
         * used when relies on some other resource's but doesn't access any of that resource's data
         * should be used only as a last resort
         * example
-            * software running in this EC2 instance needs access to the S3 API in order to boot properly you need to
-            define `aws_instance depends_on aws_iam_role_policy`
-* expression
+            * software running in this EC2 instance needs access to the S3 API in order to boot properly
+                * `aws_instance depends_on aws_iam_role_policy`
+* expressions
     * for
         * `[for o in var.list : o.id]`
     * splat
@@ -372,10 +369,8 @@
 
 ## module
 * powerful way to reuse code
-* are self-contained packages of code that allow you to create reusable components by grouping
-related resources together
-* if resources are the individual building blocks, modules are prefabricated groupings of many
-such blocks
+* are self-contained packages of code
+* allow you to create reusable components by grouping related resources together
 * https://registry.terraform.io/namespaces/terraform-aws-modules
 * root module - the directory where you run terraform apply
 * you may have one or more child modules
@@ -388,22 +383,21 @@ such blocks
 ## remote backend
 * in short: where state is stored
     * example: local or S3
-* when using a non-local backend, Terraform will not persist the state anywhere on disk
+* when using a non-local backend, terraform will not persist the state anywhere on disk
     * major benefit: no sensitive values persisted to disk
-    * remark: when writing state to the backend fails - Terraform will write the state locally
+    * remark: when writing state to the backend fails - terraform will write the state locally
 * major benefit: keep sensitive information off disk
     * for example: when you create a database, the initial database password will be in the state file
 * increases security
     * for example: s3 supports encryption at rest, authentication & authorization
 
 ## workspaces
-* allows you to create different and independent states on the same configuration
-* are technically equivalent to renaming your state file
-    * partition the Terraform state so that many instances to the same resource can exists within it
+* allows to create different and independent states on the same configuration
+* equivalent of renaming state file
     * when working in one workspace, changes will not affect resources in another workspace
 * initially the backend has only one workspace: "default"
 * used for testing
-    * for example, a new temporary workspace to freely experiment with changes without affecting the default workspace
+    * for example: a new temporary workspace to freely experiment with changes without affecting the default workspace
 * used for multi-region deployment
     ```
     provider "aws" {
@@ -417,14 +411,14 @@ such blocks
         for prod, and a third one for billing
 
 ## secrets management
-* Terraform handles a lot of secrets—more than most people realize
+* terraform handles a lot of secrets - more than most people realize
+    * example: database passwords, personal identification information (PII), encryption keys...
     * sensitive information will inevitably find its way into Terraform no matter what you do
         * you should treat the state file as sensitive and secure it accordingly
             * gate who has access to it
             * encryption at rest
             * encrypting data in transit (SSL/TLS)
             * most of it enabled by default for S3
-    * example: database passwords, personal identification information (PII), encryption keys...
 * all sensitive data is put in the state file (stored as plaintext JSON)
 * only three configuration blocks can store stateful information (sensitive or otherwise)
     * resources
@@ -475,7 +469,7 @@ such blocks
               sensitive   = true
             }
             ```
-        * appear in Terraform state but are redacted from CLI output
+        * appear in state but are redacted from CLI output
         * prevents users from accidentally exposing secrets but does not stop motivated individuals
             * you could just redirects var.db_username to local _file
     * terraform in automation: isolate sensitive variables from non-sensitive variables
