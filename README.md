@@ -112,27 +112,22 @@
 
 ### project structure
 * `.terraform`
-    * binary of the provider (initialized with during `terraform init`)
+    * binary of the providers (initialized with during `terraform init`)
 * `terraform.lock.hcl`
     * provider dependency lockfile
-        * providers (plugins for Terraform that extend it with support for interacting with various external systems)
-              Both of these dependency types can be published and updated independently from Terraform itself and from the
-              configurations that depend on them.
-              For that reason, Terraform must determine which versions of those dependencies are potentially compatible with
-              the current configuration and which versions are currently selected for use.
     * created when `terraform init`
     * tracks versions of providers and modules
     * should be committed to git
     * re-runs of terraform will use the same provider/module versions
-        * for example when terraform is ran by other members of your team or using automation
+        * example: terraform is ran by other members or using automation
 * `*.tf` files
-    * configuration files are stored in plain text files with the `.tf` file extension
+    * configuration files
     * terraform concatenates all `.tf` files together (the context is a module - explained below)
 * `*.tfvars` files
     * values assignments to variables
 * `terraform.tfstate`
-    * is the state file that Terraform uses to keep track of the resources it manages
-        * used to perform diffs during the plan and detect configuration drift
+    * is the state file used to keep track of the resources
+    * used to perform diffs during the plan and detect configuration drift
     * example
         ```
         {
@@ -144,24 +139,22 @@
           "resources": []
         }
         ```
-        * "lineage" and "serial" matters only during validation when `terraform state push` (push the state specified
-        to the currently configured backend)
+        * "lineage" and "serial" matters only during validation when `terraform state push`
+            * pushing the state to the currently configured backend
     * what happens when removed?
         * it is not recreate automatically
         * use `terraform import` to manually recreate it
-    * it’s important not to edit, delete, or Terraform could potentially lose track of the resources it manages
+    * it’s important not to edit or delete (terraform will lose track of the resources)
 * `terraform.tfstate.backup`
-    * terraform leaves behind a `terraform.tfstate.backup` file in case you need to recover to the last deployed
-    state
+    * in case to recover to the last deployed state
 * module directories
     * module is a collection of `.tf` files kept together in a directory
-        * nested directories are treated as completely separate modules, and are not automatically included in
-        the configuration
+    * nested directories are treated as completely separate modules
+        * are not automatically included in the configuration
     * root module = main directory
-    * terraform evaluates all of the configuration files in a module, effectively treating the entire module
-    as a single document
-        * separating various blocks into different files is purely for the convenience of readers and has
-        no effect on the module's behavior
+    * terraform treats the entire module as a single document
+        * separating various blocks into different files is purely for the convenience of readers
+            * no effect on the module's behavior
 
 ### language
 * providers
