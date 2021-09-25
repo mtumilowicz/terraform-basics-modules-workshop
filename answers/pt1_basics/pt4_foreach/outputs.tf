@@ -1,9 +1,8 @@
-output "container-name" {
+output "container_name_output" {
   value         = toset([for container in docker_container.http_server_container : container.name])
-  description = "The name of the container"
 }
 
-output "ip-address" {
+output "container_access_ip_port_output" {
   value       = [for container in docker_container.http_server_container : join(":", [container.ip_address], container.ports[*]["external"])]
-  description = "The IP address and external port of the container"
+  description = "IP + external port of the container"
 }

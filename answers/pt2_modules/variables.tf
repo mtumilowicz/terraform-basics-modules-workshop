@@ -11,8 +11,8 @@ variable "external_ports" {
   type = map(any)
 
   validation {
-    condition     = max(var.external_ports["http_server"]...) <= 65535 && min(var.external_ports["http_server"]...) >= 1980
-    error_message = "The external port must be in the valid port range 1980 - 65535."
+    condition     = max(var.external_ports["http_server"]...) <= 10000 && min(var.external_ports["http_server"]...) >= 0
+    error_message = "The external port must be in range [0; 10000]."
   }
 }
 
