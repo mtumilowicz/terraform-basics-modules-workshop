@@ -30,7 +30,7 @@
     * introduction to infrastructure as a code
     * introduction to terraform
         * provider, resources, data, variables, outputs
-        * standard functions and meta-arguments: for_each, count
+        * standard functions, meta-arguments and expressions
         * modules
         * remote backends
         * workspaces
@@ -322,7 +322,7 @@
     * `terraform workspace select workspaceName`
     * `terraform workspace show`
 
-## standard functions and meta-arguments
+## standard functions, meta-arguments and expression
 * https://www.terraform.io/docs/language/functions/index.html
     * `join(separator, list)`
         * `join(", ", ["foo", "bar", "baz"])` -> `foo, bar, baz`
@@ -365,9 +365,13 @@
         * example
             * software running in this EC2 instance needs access to the S3 API in order to boot properly you need to
             define `aws_instance depends_on aws_iam_role_policy`
-* splat expression
-    * more concise way to express a common operation performed with a `for`
-    * `[for o in var.list : o.id]` -> `var.list[*].id`
+* expression
+    * for
+        * `[for o in var.list : o.id]`
+    * splat
+        * more concise way to express a common operation performed with a `for`
+        * `[for o in var.list : o.id]` -> `var.list[*].id`
+        * does not work for maps
 
 ## module
 * powerful way to reuse code
