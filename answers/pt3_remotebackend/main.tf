@@ -5,7 +5,7 @@ resource "aws_s3_bucket" "terraform_state" {
 }
 
 resource "aws_dynamodb_table" "terraform_state_lock" {
-  name           = "terraformlock"
+  name           = "terraform-lock"
   read_capacity  = 0
   write_capacity = 0
   billing_mode   = "PAY_PER_REQUEST"
