@@ -336,6 +336,9 @@
         * `lookup({a="ay", b="bee"}, "c", "what?")` -> `what?`
     * `templatefile(path, vars)`
         * `templatefile("${path.module}/backends.tpl", { port = 8080, ip_addrs = ["10.0.0.1", "10.0.0.2"] })`
+    * expanding function arguments: `...`
+        * expanded list into separate arguments
+        * `min([55, 2453, 2]...)`
 * meta-arguments
     ```
     module/resource "example" {
