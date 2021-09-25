@@ -7,7 +7,9 @@
         * main: as a base use pt3_count
     1. module image
         * inputs: image name
+        * output: image name
         * main: just `resource "docker_image"` with input name
     1. root module
+        *
 1. verify: http://127.0.0.1:8080/test.html
 1. verify: http://127.0.0.1:8081/test.html
