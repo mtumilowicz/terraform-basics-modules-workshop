@@ -1,3 +1,4 @@
+// it cannot be variable, because: functions may not be called in tfvars and variable may not be used in tfvars
 locals {
   containers = {
     http_server = {
