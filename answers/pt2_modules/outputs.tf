@@ -1,3 +1,3 @@
-output "containers_ip_port_output" {
+output "containers_output" {
   value       = [for container in module.container[*] : container]
 }
