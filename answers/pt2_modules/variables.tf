@@ -1,9 +1,6 @@
 variable "image" {
   type        = map(any)
   description = "image for container"
-  default = {
-    http_server = "danjellz/http-server"
-  }
 }
 
 variable "http_server" {
