@@ -3,7 +3,7 @@ resource "docker_image" "http_server_image" {
 }
 
 resource "docker_container" "http_server_container" {
-  count = local.container_count
+  count = local.containers_to_create_count
   image = docker_image.http_server_image.latest
   name  = "http_server-running${count.index}"
 

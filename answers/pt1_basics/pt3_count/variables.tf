@@ -17,7 +17,3 @@ variable "internal_port" {
     error_message = "The internal port must be 8080."
   }
 }
-
-locals {
-  container_count = length(var.external_ports)
-}
