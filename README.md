@@ -90,25 +90,25 @@
 ### terraform structure
 * terraform is separated into 3 separate parts
     * core
-        * reading and interpolating configuration files and modules
+        * parsing configuration files
         * resource state management
         * construction of the Resource Graph (DAG)
         * plan execution
         * communication with plugins over RPC
         * contains language interpreter, the CLI and how to interact with providers
-            * doesn't contain the code to interact with the API of the cloud providers to create resources
-            * that code is in providers, which be installed separately when invoking "terraform init"
+            * no code to interact with the API of the cloud providers
+                * that code is in providers, which be installed separately by invoking `terraform init`
     * plugins (providers and provisioners)
-        * exposes an implementation for a specific service, such as AWS, or provisioner, such as bash
-        * executed as a separate process and communicate with the main Terraform binary over an RPC interface
+        * implementations for a specific service, such as AWS, or provisioner, such as bash
+        * separate process communicating with terraform binary over an RPC interface
         * providers
-            * define Resources that map to specific Services
-            * authentication with the Infrastructure Provider
+            * maps Resources -> Services
+            * handles authentication
         * provisioners
-            * executing commands or scripts on the designated Resource after creation, or on destruction
+            * executes commands/scripts on the designated Resource after creation, or on destruction
     * upstream
           * terraform does not create resources - it makes the cloud api to create it
-              * api (aws api, google cloud api, github api, ...)
+          * api: aws, google cloud, github, etc
 
 ### project structure
 * `.terraform`
