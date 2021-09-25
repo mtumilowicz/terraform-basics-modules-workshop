@@ -13,11 +13,11 @@ resource "docker_container" "http_server_container" {
 }
 
 resource "docker_container" "http_server_container2" {
-  image = "..."
-  name  = "..."
+  image = "..." // docker_image.http_server_image.latest
+  name  = "..." // "http_server-running2"
 
   ports {
-    internal = 0
-    external = 0
+    internal = 0 // 8080
+    external = 0 // 8081
   }
 }
