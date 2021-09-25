@@ -7,7 +7,6 @@ variable "http_server" {
   default = "http_server"
 }
 
-
 variable "external_ports" {
   type = map(any)
 
