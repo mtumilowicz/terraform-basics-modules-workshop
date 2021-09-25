@@ -56,7 +56,7 @@
         * immutable infrastructure = infrastructure as a disposable commodity
     * configuration management = application delivery on virtual machines (VMs)
         * CM tools favor mutable infrastructure
-            * mutable infrastructure = updates on existing servers
+        * mutable infrastructure = updates on existing servers
 * terraform vs packer vs ainsible
     * terraform
         * automates provisioning of the infrastructure
@@ -64,25 +64,26 @@
             * keep your infrastructure change history in git
         * cloud agnostic
             * integrates with different clouds through providers (plugins)
-        * a state management tool that performs CRUD operations on managed resources
-            * anything that can be represented as CRUD can be managed as a Terraform resource
-            * uses the same APIs you would use if you were writing an automation script
+        * is a state management tool + CRUD operations
+            * anything that is CRUD can be managed by terraform
+            * uses the same APIs as automation script
                 * difference: not only deployment but also infrastructure management
             * understands dependencies between resources
-            * can even detect and correct for configuration drift
+            * can detect and correct configuration drift
+                * drift means real-world state of infrastructure =/= state defined in configuration
+                * note that cannot detect drift of resources that are not managed by terraform
         * is a simple state management engine
     * packer
         * example: build AWS AMIs based on templates
-        * instead of installing the software after booting up an instance, you
-        can create an AMI with all the necessary software on from a machine image
-            * machine image is a single static unit that contains a pre-configured operating system
-            and installed software which is used to quickly create new running machines
+        * instead of installing the software after booting up an instance, you create an AMI
+        with all needed software from a machine image
+            * machine image = pre-configured operating system + software
         * speed up boot times of instances
-        * common approach when you run a horizontally scaled app layer or a cluster
-* ainsible
-    * install software after the infrastructure is provisioned
-    * has a focus on automating the installation and configuration of software
-    * example: security updates
+        * common approach when running horizontally scaled apps
+    * ainsible
+        * install software after the infrastructure is provisioned
+        * has a focus on automating the installation and configuration of software
+        * example: security updates
 
 ## introduction
 
