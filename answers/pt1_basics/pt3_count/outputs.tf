@@ -1,5 +1,5 @@
 output "container_name_output" {
-  value       = docker_container.http_server_container[*].name
+  value = docker_container.http_server_container[*].name
 }
 
 output "container_access_ip_port_output" {
