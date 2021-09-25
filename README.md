@@ -30,13 +30,14 @@
     * introduction to infrastructure as a code
     * introduction to terraform
         * provider, resources, data, variables, outputs
-        * for_each, count
+        * standard functions and meta-arguments: for_each, count
         * modules
-        * remote backends and workspaces
+        * remote backends
+        * workspaces
         * aws with localstack
         * secrets management
 * plan for the workshop
-    * follow the hints from appropriate directories:
+    * follow the hints in directories:
         1. pt1_basics
         1. pt2_modules
         1. pt3_remotebackend
