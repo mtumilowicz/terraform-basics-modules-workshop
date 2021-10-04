@@ -38,6 +38,12 @@
         * secrets management
     * introduction to terraform version manager: https://github.com/tfutils/tfenv
 * plan for the workshop
+    * fill the scaffolds and follow the hints in directories:
+        1. pt1_basics
+        1. pt2_modules
+        1. pt3_remotebackend
+        1. pt4_workspaces
+        1. pt5_aws
     * note that `docker provider` differs for unix and windows os:
         ```
         provider "docker" {
@@ -46,12 +52,7 @@
         }
         ```
         you should uncomment appropriate one
-    * fill the scaffolds and follow the hints in directories:
-        1. pt1_basics
-        1. pt2_modules
-        1. pt3_remotebackend
-        1. pt4_workspaces
-        1. pt5_aws
+
 
 ## infrastructure as a code
 * is the process of managing and provisioning infrastructure through definition files
@@ -80,10 +81,11 @@
             * understands dependencies between resources
             * can detect and correct configuration drift
                 * drift means real-world state of infrastructure =/= state defined in configuration
-                * note that cannot detect drift of resources that are not managed by terraform
+                * cannot detect drift of resources that are not managed by terraform
         * is a simple state management engine
     * packer
         * example: build AWS AMIs based on templates
+            * Amazon Machine Image (AMI) provides the information required to launch an instance
         * instead of installing the software after booting up an instance, you create an AMI
         with all needed software from a machine image
             * machine image = pre-configured operating system + software
@@ -111,7 +113,7 @@
         * implementations for a specific service, such as AWS, or provisioner, such as bash
         * separate process communicating with terraform binary over an RPC interface
         * providers
-            * maps Resources -> Services
+            * maps terraform Resources into cloud Services
             * handles authentication
         * provisioners
             * executes commands/scripts on the designated Resource after creation, or on destruction
@@ -121,8 +123,11 @@
 
 ### project structure
 * `.terraform`
-    * binary of the providers (initialized with during `terraform init`)
+    * binary of the providers (initialized during `terraform init`)
 * `terraform.lock.hcl`
+    * problem: providers and modules can be published and updated independently from Terraform itself
+        * Terraform must determine which versions of those dependencies are potentially compatible with the
+        current configuration
     * provider dependency lockfile
     * created when `terraform init`
     * tracks versions of providers and modules
@@ -131,7 +136,7 @@
         * example: terraform is ran by other members or using automation
 * `*.tf` files
     * configuration files
-    * terraform concatenates all `.tf` files together (the context is a module - explained below)
+    * terraform concatenates all `.tf` files together (the context is a module - explained in the module section)
 * `*.tfvars` files
     * values assignments to variables
 * `terraform.tfstate`
@@ -165,14 +170,28 @@
         * separating various blocks into different files is purely for the convenience of readers
             * no effect on the module's behavior
 
+### module
+* powerful way to reuse code
+* are self-contained packages of code
+* allow you to create reusable components by grouping related resources together
+* https://registry.terraform.io/namespaces/terraform-aws-modules
+* root module - the directory where you run terraform apply
+* you may have one or more child modules
+* convention: three configuration files per module
+    * `main.tf` - entry point
+    * `outputs.tf` - all output variables
+    * `variables.tf` - all input variables
+    * additional: `versions.tf`, `providers.tf`, and `README.md` in the root module
+
 ### language
 * providers
     * interact with cloud providers
     * each provider defines a set of resources
-    * example: AWS provider - S3, EC2
+    * example: AWS provider - S3, EC2, etc
 * resources
     * describe infrastructure objects
     * example: ec2, vpc, database
+        * https://registry.terraform.io/providers/hashicorp/aws/latest/docs
     * have inputs and outputs
         * inputs are called arguments
         * outputs are called attributes
@@ -224,7 +243,7 @@
         * terraform automatically loads variable definitions if
             * named exactly `terraform.tfvars`
             * names ending in `.auto.tfvars`
-        * otherwise `terraform apply --var-file prod.tfvars`
+        * other way to load variables: `terraform apply --var-file prod.tfvars`
 * datasources
     * fetch data from outside of the terraform
     * example
@@ -294,7 +313,7 @@
                     * No -> `No-op`
             * NO - `Create()`
         1. output plan
-    * always run plan before deploying
+    * advice: always run plan before deploying
     * digression
         * if an attribute is marked as an ForceNew - the resource is destroyed and recreated
            ```
@@ -341,13 +360,6 @@
         * expanded list into separate arguments
         * `min([55, 2453, 2]...)`
 * meta-arguments
-    ```
-    module/resource "example" {
-        meta-argument {
-            ...
-        }
-    }
-    ```
     * providers
         * specifies which provider configurations will be available inside the module
     * `for_each` and `count`
@@ -358,9 +370,29 @@
             * `count.index` - (starting with 0) corresponding to current instance
             * is sensible for any changes in list order
                 * terraform will force replacement of all resources of which the index in the list has changed
+            * example
+                ```
+                resource "aws_instance" "server" {
+                  count = 4 # create four similar EC2 instances
+
+                  ami           = "ami-a1b2c3d4"
+                  instance_type = "t2.micro"
+
+                  tags = {
+                    Name = "Server ${count.index}"
+                  }
+                }
+                ```
         * `for_each`
             * accepts a map or a set of strings, and creates an instance for each item
             * `each.key`, `each.value`
+            * example
+                ```
+                resource "aws_iam_user" "the-accounts" {
+                  for_each = toset( ["Todd", "James", "Alice", "Dottie"] )
+                  name     = each.key
+                }
+                ```
     * `depends_on`
         * handle hidden resource or module dependencies
         * used when relies on some other resource's but doesn't access any of that resource's data
@@ -375,19 +407,6 @@
         * more concise way to express a common operation performed with a `for`
         * `[for o in var.list : o.id]` -> `var.list[*].id`
         * does not work for maps
-
-## module
-* powerful way to reuse code
-* are self-contained packages of code
-* allow you to create reusable components by grouping related resources together
-* https://registry.terraform.io/namespaces/terraform-aws-modules
-* root module - the directory where you run terraform apply
-* you may have one or more child modules
-* convention: three configuration files per module
-    * `main.tf` - entry point
-    * `outputs.tf` - all output variables
-    * `variables.tf` - all input variables
-    * additional: `versions.tf`, `providers.tf`, and `README.md` in the root module
 
 ## remote backend
 * in short: where state is stored
@@ -405,14 +424,15 @@
 * equivalent of renaming state file
     * when working in one workspace, changes will not affect resources in another workspace
 * initially the backend has only one workspace: "default"
-* used for testing
-    * for example: a new temporary workspace to freely experiment with changes without affecting the default workspace
-* used for multi-region deployment
-    ```
-    provider "aws" {
-     region = "${terraform.workspace}"
-    }
-    ```
+* use-cases
+    * testing
+        * for example: a new temporary workspace to freely experiment with changes without affecting the default workspace
+    * multi-region deployment
+        ```
+        provider "aws" {
+         region = "${terraform.workspace}"
+        }
+        ```
 * workspaces alone are not a suitable tool for system decomposition
     * cannot be used for a "fully isolated" setup for multiple environments (staging / testing / prod)
     * each subsystem should have its own separate configuration and backend (complete separation)
@@ -457,7 +477,11 @@
     * two major ways to pass static secrets into Terraform
         * as environment variables
             * should be used whenever possible
-            * example (a very bad idea)
+            * example: aws-vault
+            * digression: in RDS database you have to set username and password as Terraform variables - there is no
+            option for environment variables
+        * as Terraform variables (a very bad idea)
+            * example
                 ```
                 provider "aws" {
                   region = "us-west-2"
@@ -465,10 +489,6 @@
                   secret_key = var.secret_key // required, but can be sourced from the AWS_SECRET_ACCESS_KEY environment variable
                 }
                 ```
-                * solution: use aws-vault
-            * digression: RDS database you have to set username and password as Terraform variables - there is no
-            option for environment variables
-        * as Terraform variables
     * sensitive variables can be defined by setting the sensitive argument to true
         * example
             ```
@@ -481,10 +501,3 @@
         * appear in state but are redacted from CLI output
         * prevents users from accidentally exposing secrets but does not stop motivated individuals
             * you could just redirects var.db_username to local _file
-    * terraform in automation: isolate sensitive variables from non-sensitive variables
-        * reminder: terraform does not automatically load variable with any name other filename
-        than `terraform.tfvars`
-        * example
-            * non-sensitive data stored in: `production.tfvars` (and commited to git)
-            * sensitive data stored in `secrets.tfvars` (not commited to git)
-            * command terraform apply -var-file="secrets.tfvars" -var-file="production.tfvars"
