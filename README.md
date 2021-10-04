@@ -36,6 +36,7 @@
         * workspaces
         * aws with localstack
         * secrets management
+    * introduction to terraform version manager: https://github.com/tfutils/tfenv
 * plan for the workshop
     * fill the scaffolds and follow the hints in directories:
         1. pt1_basics
