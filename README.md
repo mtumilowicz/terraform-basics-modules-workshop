@@ -38,6 +38,14 @@
         * secrets management
     * introduction to terraform version manager: https://github.com/tfutils/tfenv
 * plan for the workshop
+    * note that `docker provider` differs for unix and windows os:
+        ```
+        provider "docker" {
+          // host = "unix:///var/run/docker.sock" // macos
+          // host = "npipe:////.//pipe//docker_engine" // windows
+        }
+        ```
+        you should uncomment appropriate one
     * fill the scaffolds and follow the hints in directories:
         1. pt1_basics
         1. pt2_modules
