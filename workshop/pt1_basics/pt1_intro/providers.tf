@@ -3,5 +3,6 @@ terraform {
 }
 
 provider "docker" {
-  host = "npipe:////.//pipe//docker_engine" // windows: https://github.com/hashicorp/terraform-provider-docker/issues/180
+  // host = "unix:///var/run/docker.sock" // macos
+  // host = "npipe:////.//pipe//docker_engine" // windows
 }
