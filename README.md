@@ -1,3 +1,5 @@
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+
 # terraform-basics-modules-workshop
 * references
     * https://discuss.hashicorp.com/t/terraform-0-14-the-dependency-lock-file/15696
