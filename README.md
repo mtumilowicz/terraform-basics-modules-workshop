@@ -28,7 +28,7 @@
     * https://shanidgafur.github.io/blog/terraform-workspaces-for-multi-region-deployment
 
 ## preface
-* goals of this workshops
+* goals of this workshop
     * introduction to infrastructure as a code
     * introduction to terraform
         * provider, resources, data, variables, outputs
