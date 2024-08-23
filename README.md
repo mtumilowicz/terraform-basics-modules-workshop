@@ -111,8 +111,8 @@
         * provisioners
             * executes commands/scripts on the designated Resource after creation, or on destruction
     * upstream
-          * terraform does not create resources - it makes the cloud api to create it
-          * api: aws, google cloud, github, etc
+       * terraform does not create resources - it makes the cloud api to create it
+       * api: aws, google cloud, github, etc
 
 ## project structure
 * `.terraform`
