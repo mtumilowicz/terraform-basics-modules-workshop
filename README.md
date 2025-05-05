@@ -77,6 +77,9 @@
             * can detect and correct configuration drift
                 * drift means real-world state of infrastructure =/= state defined in configuration
                 * cannot detect drift of resources that are not managed by terraform
+                * does not continuously monitor infrastructure (it is not like Kubernetes)
+                    * detects drift only when: `terraform plan` is run
+                    * fix drift only when: `terraform apply` is run
         * is a simple state management engine
     * packer
         * example: build AWS AMIs based on templates
